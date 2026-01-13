@@ -3,8 +3,15 @@ import click
 import requests
 import json
 import sys
+import os
 from typing import Optional
 from pathlib import Path
+
+# Configura encoding UTF-8 para Windows
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
 
 # Adiciona o diretório raiz ao path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -39,7 +46,7 @@ def get_headers(ctx):
 @click.pass_context
 def list_printers(ctx):
     """Lista todas as impressoras disponíveis no sistema."""
-    click.echo("🔍 Buscando impressoras disponíveis...\n")
+    click.echo("[BUSCANDO] Buscando impressoras disponiveis...\n")
     
     try:
         # Usa a biblioteca diretamente para listar impressoras locais
@@ -48,21 +55,21 @@ def list_printers(ctx):
         default = printer_manager.get_default_printer()
         
         if not printers:
-            click.echo("❌ Nenhuma impressora encontrada no sistema.")
+            click.echo("[ERRO] Nenhuma impressora encontrada no sistema.")
             return
         
-        click.echo(f"📋 Impressoras encontradas ({len(printers)}):\n")
+        click.echo(f"[LISTA] Impressoras encontradas ({len(printers)}):\n")
         
         for i, printer in enumerate(printers, 1):
-            marker = "⭐" if printer == default else "  "
+            marker = "[*]" if printer == default else "   "
             click.echo(f"{marker} {i}. {printer}")
             if printer == default:
-                click.echo("     (Impressora padrão do sistema)")
+                click.echo("     (Impressora padrao do sistema)")
         
-        click.echo(f"\n✅ Total: {len(printers)} impressora(s)")
+        click.echo(f"\n[OK] Total: {len(printers)} impressora(s)")
         
     except Exception as e:
-        click.echo(f"❌ Erro ao listar impressoras: {e}", err=True)
+        click.echo(f"[ERRO] Erro ao listar impressoras: {e}", err=True)
         sys.exit(1)
 
 
@@ -72,18 +79,18 @@ def list_printers(ctx):
 @click.pass_context
 def test_printer(ctx, printer):
     """Testa a impressão em uma impressora."""
-    click.echo("🧪 Testando impressão...\n")
+    click.echo("[TESTE] Testando impressao...\n")
     
     try:
         printer_manager = PrinterManager()
         printer_name = printer_manager.get_printer_name(printer)
         
         if not printer_name:
-            click.echo("❌ Nenhuma impressora disponível.")
+            click.echo("[ERRO] Nenhuma impressora disponivel.")
             sys.exit(1)
         
-        click.echo(f"🖨️  Impressora: {printer_name}")
-        click.echo("📄 Enviando etiqueta de teste...")
+        click.echo(f"[IMPRESSORA] Impressora: {printer_name}")
+        click.echo("[ENVIANDO] Enviando etiqueta de teste...")
         
         # Gera ZPL de teste
         zpl_generator = ZPLGenerator()
@@ -99,15 +106,15 @@ def test_printer(ctx, printer):
         success = printer_manager.print_zpl(zpl, printer_name)
         
         if success:
-            click.echo("✅ Impressão de teste enviada com sucesso!")
+            click.echo("[OK] Impressao de teste enviada com sucesso!")
             click.echo(f"   Verifique a impressora: {printer_name}")
         else:
-            click.echo("❌ Falha ao enviar impressão.")
+            click.echo("[ERRO] Falha ao enviar impressao.")
             click.echo("   Verifique se a impressora está ligada e conectada.")
             sys.exit(1)
             
     except Exception as e:
-        click.echo(f"❌ Erro ao testar impressão: {e}", err=True)
+        click.echo(f"[ERRO] Erro ao testar impressao: {e}", err=True)
         sys.exit(1)
 
 
@@ -127,14 +134,14 @@ def test_printer(ctx, printer):
 @click.pass_context
 def print_label(ctx, printer, codigo, descricao, quantidade, preco, codigo_barras):
     """Imprime uma etiqueta diretamente (sem usar API)."""
-    click.echo("🖨️  Preparando impressão...\n")
+    click.echo("[IMPRESSORA] Preparando impressao...\n")
     
     try:
         printer_manager = PrinterManager()
         printer_name = printer_manager.get_printer_name(printer)
         
         if not printer_name:
-            click.echo("❌ Nenhuma impressora disponível.")
+            click.echo("[ERRO] Nenhuma impressora disponivel.")
             sys.exit(1)
         
         # Prepara dados
@@ -154,27 +161,27 @@ def print_label(ctx, printer, codigo, descricao, quantidade, preco, codigo_barra
         zpl_generator = ZPLGenerator()
         zpl = zpl_generator.generate_product_label(data)
         
-        click.echo(f"📋 Dados da etiqueta:")
+        click.echo(f"[DADOS] Dados da etiqueta:")
         click.echo(f"   Código: {codigo}")
         click.echo(f"   Descrição: {descricao}")
         if quantidade:
             click.echo(f"   Quantidade: {quantidade}")
         if preco:
             click.echo(f"   Preço: R$ {preco}")
-        click.echo(f"\n🖨️  Impressora: {printer_name}")
-        click.echo("📄 Enviando para impressão...")
+        click.echo(f"\n[IMPRESSORA] Impressora: {printer_name}")
+        click.echo("[ENVIANDO] Enviando para impressao...")
         
         # Imprime
         success = printer_manager.print_zpl(zpl, printer_name)
         
         if success:
-            click.echo("✅ Etiqueta impressa com sucesso!")
+            click.echo("[OK] Etiqueta impressa com sucesso!")
         else:
-            click.echo("❌ Falha ao imprimir.")
+            click.echo("[ERRO] Falha ao imprimir.")
             sys.exit(1)
             
     except Exception as e:
-        click.echo(f"❌ Erro: {e}", err=True)
+        click.echo(f"[ERRO] Erro: {e}", err=True)
         sys.exit(1)
 
 
@@ -182,7 +189,7 @@ def print_label(ctx, printer, codigo, descricao, quantidade, preco, codigo_barra
 @click.pass_context
 def status(ctx):
     """Verifica o status da API."""
-    click.echo("🔍 Verificando status da API...\n")
+    click.echo("[VERIFICANDO] Verificando status da API...\n")
     
     try:
         url = f"{ctx.obj['api_url']}/status"
@@ -193,27 +200,27 @@ def status(ctx):
         
         data = response.json()
         
-        click.echo("📊 Status da API:")
+        click.echo("[STATUS] Status da API:")
         click.echo(f"   Status: {data.get('status', 'unknown')}")
-        click.echo(f"   Impressora disponível: {'✅ Sim' if data.get('printer_available') else '❌ Não'}")
+        click.echo(f"   Impressora disponivel: {'[OK] Sim' if data.get('printer_available') else '[ERRO] Nao'}")
         
         printer_name = data.get('printer_name')
         if printer_name:
             click.echo(f"   Impressora: {printer_name}")
         
         stats = data.get('queue_stats', {})
-        click.echo(f"\n📋 Estatísticas da Fila:")
+        click.echo(f"\n[ESTATISTICAS] Estatisticas da Fila:")
         click.echo(f"   Pendentes: {stats.get('pending', 0)}")
         click.echo(f"   Processando: {stats.get('processing', 0)}")
         click.echo(f"   Concluídas: {stats.get('completed', 0)}")
         click.echo(f"   Falhas: {stats.get('failed', 0)}")
         
     except requests.exceptions.ConnectionError:
-        click.echo("❌ Não foi possível conectar à API.")
+        click.echo("[ERRO] Nao foi possivel conectar a API.")
         click.echo(f"   Verifique se a API está rodando em {ctx.obj['api_url']}")
         sys.exit(1)
     except requests.exceptions.RequestException as e:
-        click.echo(f"❌ Erro ao verificar status: {e}", err=True)
+        click.echo(f"[ERRO] Erro ao verificar status: {e}", err=True)
         sys.exit(1)
 
 
@@ -226,7 +233,7 @@ def status(ctx):
 @click.pass_context
 def queue(ctx, status_filter, limit):
     """Visualiza a fila de impressão."""
-    click.echo("📋 Visualizando fila de impressão...\n")
+    click.echo("[FILA] Visualizando fila de impressao...\n")
     
     try:
         url = f"{ctx.obj['api_url']}/queue"
@@ -243,18 +250,18 @@ def queue(ctx, status_filter, limit):
         items = response.json()
         
         if not items:
-            click.echo("✅ Fila vazia.")
+            click.echo("[OK] Fila vazia.")
             return
         
-        click.echo(f"📊 Itens na fila ({len(items)}):\n")
+        click.echo(f"[ITENS] Itens na fila ({len(items)}):\n")
         
         for item in items:
             status_icon = {
-                'pending': '⏳',
-                'processing': '🔄',
-                'completed': '✅',
-                'failed': '❌'
-            }.get(item['status'], '❓')
+                'pending': '[PENDENTE]',
+                'processing': '[PROCESSANDO]',
+                'completed': '[OK]',
+                'failed': '[ERRO]'
+            }.get(item['status'], '[?]')
             
             click.echo(f"{status_icon} [{item['status'].upper()}] {item['id']}")
             click.echo(f"   Criado em: {item['created_at']}")
@@ -269,11 +276,11 @@ def queue(ctx, status_filter, limit):
             click.echo()
         
     except requests.exceptions.ConnectionError:
-        click.echo("❌ Não foi possível conectar à API.")
+        click.echo("[ERRO] Nao foi possivel conectar a API.")
         click.echo(f"   Verifique se a API está rodando em {ctx.obj['api_url']}")
         sys.exit(1)
     except requests.exceptions.RequestException as e:
-        click.echo(f"❌ Erro ao visualizar fila: {e}", err=True)
+        click.echo(f"[ERRO] Erro ao visualizar fila: {e}", err=True)
         sys.exit(1)
 
 
@@ -281,7 +288,7 @@ def queue(ctx, status_filter, limit):
 @click.pass_context
 def process_queue(ctx):
     """Força processamento imediato da fila."""
-    click.echo("🔄 Processando fila...\n")
+    click.echo("[PROCESSANDO] Processando fila...\n")
     
     try:
         url = f"{ctx.obj['api_url']}/queue/process"
@@ -293,13 +300,13 @@ def process_queue(ctx):
         data = response.json()
         processed = data.get('processed', 0)
         
-        click.echo(f"✅ {processed} requisição(ões) processada(s).")
+        click.echo(f"[OK] {processed} requisicao(oes) processada(s).")
         
     except requests.exceptions.ConnectionError:
-        click.echo("❌ Não foi possível conectar à API.")
+        click.echo("[ERRO] Nao foi possivel conectar a API.")
         sys.exit(1)
     except requests.exceptions.RequestException as e:
-        click.echo(f"❌ Erro ao processar fila: {e}", err=True)
+        click.echo(f"[ERRO] Erro ao processar fila: {e}", err=True)
         sys.exit(1)
 
 
@@ -317,7 +324,7 @@ def process_queue(ctx):
 @click.pass_context
 def print_via_api(ctx, codigo, descricao, quantidade, preco, printer):
     """Imprime uma etiqueta via API."""
-    click.echo("🖨️  Enviando requisição de impressão via API...\n")
+    click.echo("[ENVIANDO] Enviando requisicao de impressao via API...\n")
     
     try:
         url = f"{ctx.obj['api_url']}/print"
@@ -338,7 +345,7 @@ def print_via_api(ctx, codigo, descricao, quantidade, preco, printer):
         if printer:
             data["printer_name"] = printer
         
-        click.echo(f"📋 Dados:")
+        click.echo(f"[DADOS] Dados:")
         click.echo(f"   Código: {codigo}")
         click.echo(f"   Descrição: {descricao}")
         if quantidade:
@@ -353,20 +360,20 @@ def print_via_api(ctx, codigo, descricao, quantidade, preco, printer):
         result = response.json()
         
         if result.get('success'):
-            click.echo("✅ Requisição enviada com sucesso!")
+            click.echo("[OK] Requisicao enviada com sucesso!")
             if result.get('queue_id'):
                 click.echo(f"   Queue ID: {result['queue_id']}")
             click.echo(f"   Mensagem: {result.get('message', '')}")
         else:
-            click.echo("❌ Falha ao enviar requisição.")
+            click.echo("[ERRO] Falha ao enviar requisicao.")
             sys.exit(1)
         
     except requests.exceptions.ConnectionError:
-        click.echo("❌ Não foi possível conectar à API.")
+        click.echo("[ERRO] Nao foi possivel conectar a API.")
         click.echo(f"   Verifique se a API está rodando em {ctx.obj['api_url']}")
         sys.exit(1)
     except requests.exceptions.RequestException as e:
-        click.echo(f"❌ Erro: {e}", err=True)
+        click.echo(f"[ERRO] Erro: {e}", err=True)
         if hasattr(e, 'response') and e.response is not None:
             click.echo(f"   Resposta: {e.response.text}")
         sys.exit(1)
@@ -376,7 +383,7 @@ def print_via_api(ctx, codigo, descricao, quantidade, preco, printer):
 @click.pass_context
 def list_printers_api(ctx):
     """Lista impressoras via API."""
-    click.echo("🔍 Buscando impressoras via API...\n")
+    click.echo("[BUSCANDO] Buscando impressoras via API...\n")
     
     try:
         url = f"{ctx.obj['api_url']}/printers"
@@ -390,32 +397,32 @@ def list_printers_api(ctx):
         default = data.get('default')
         
         if not printers:
-            click.echo("❌ Nenhuma impressora encontrada.")
+            click.echo("[ERRO] Nenhuma impressora encontrada.")
             return
         
-        click.echo(f"📋 Impressoras encontradas ({len(printers)}):\n")
+        click.echo(f"[LISTA] Impressoras encontradas ({len(printers)}):\n")
         
         for i, printer in enumerate(printers, 1):
-            marker = "⭐" if printer == default else "  "
+            marker = "[*]" if printer == default else "   "
             click.echo(f"{marker} {i}. {printer}")
             if printer == default:
-                click.echo("     (Impressora padrão)")
+                click.echo("     (Impressora padrao)")
         
-        click.echo(f"\n✅ Total: {len(printers)} impressora(s)")
+        click.echo(f"\n[OK] Total: {len(printers)} impressora(s)")
         
     except requests.exceptions.ConnectionError:
-        click.echo("❌ Não foi possível conectar à API.")
+        click.echo("[ERRO] Nao foi possivel conectar a API.")
         click.echo(f"   Verifique se a API está rodando em {ctx.obj['api_url']}")
         sys.exit(1)
     except requests.exceptions.RequestException as e:
-        click.echo(f"❌ Erro: {e}", err=True)
+        click.echo(f"[ERRO] Erro: {e}", err=True)
         sys.exit(1)
 
 
 @cli.command()
 def validate_setup():
     """Valida a configuração do sistema."""
-    click.echo("🔍 Validando configuração do sistema...\n")
+    click.echo("[VALIDANDO] Validando configuracao do sistema...\n")
     
     errors = []
     warnings = []
@@ -465,19 +472,19 @@ def validate_setup():
     click.echo()
     
     if warnings:
-        click.echo("⚠️  Avisos:")
+        click.echo("[AVISO] Avisos:")
         for warning in warnings:
             click.echo(f"   - {warning}")
         click.echo()
     
     if errors:
-        click.echo("❌ Erros encontrados:")
+        click.echo("[ERRO] Erros encontrados:")
         for error in errors:
             click.echo(f"   - {error}")
         click.echo()
         sys.exit(1)
     else:
-        click.echo("✅ Sistema configurado corretamente!")
+        click.echo("[OK] Sistema configurado corretamente!")
 
 
 if __name__ == '__main__':
