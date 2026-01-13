@@ -1,0 +1,18 @@
+api:
+  host: "0.0.0.0"
+  port: 8000
+  api_key: ""  # Deixe vazio para desabilitar autenticação
+
+printer:
+  default_printer: ""  # Nome da impressora padrão (deixe vazio para usar a primeira disponível)
+  timeout: 30  # Timeout em segundos para operações de impressão
+  retry_attempts: 3  # Número de tentativas em caso de falha
+
+queue:
+  check_interval: 5  # Intervalo em segundos para verificar a fila
+  max_retries: 3  # Máximo de tentativas antes de marcar como falha
+
+logging:
+  level: "INFO"
+  file: "logs/api.log"
+
