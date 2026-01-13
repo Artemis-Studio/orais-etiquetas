@@ -1,0 +1,10 @@
+# Versão mínima para Python 3.14+ (sem dependências que precisam compilar)
+fastapi
+uvicorn
+pywin32
+pyyaml
+pydantic
+python-multipart
+requests
+click
+
