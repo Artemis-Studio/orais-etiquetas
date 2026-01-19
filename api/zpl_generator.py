@@ -30,12 +30,16 @@ class ZPLGenerator:
         
         Args:
             data: Dicionário com dados do produto:
-                - codigo: Código do produto
-                - descricao: Descrição do produto
-                - quantidade: Quantidade (opcional)
-                - preco: Preço (opcional)
+                - codigo: Código do produto (usado como REF se ref não fornecido)
+                - descricao: Descrição principal do produto (primeira linha)
+                - descricao2: Descrição secundária (segunda linha, opcional)
+                - ref: Referência do produto (opcional, usa codigo se não fornecido)
+                - pedido: Número do pedido (opcional)
                 - codigo_barras: Código de barras (opcional, usa codigo se não fornecido)
-                - outras informações customizadas
+                - lote: Número do lote (opcional)
+                - validade: Data de validade (opcional)
+                - quantidade: Quantidade (opcional, mantido para compatibilidade)
+                - preco: Preço (opcional, mantido para compatibilidade)
         
         Returns:
             String com comando ZPL completo
@@ -43,9 +47,12 @@ class ZPLGenerator:
         # Extrai dados e escapa caracteres especiais
         codigo = self._escape_zpl(str(data.get('codigo', '')))
         descricao = self._escape_zpl(str(data.get('descricao', '')))
-        quantidade = self._escape_zpl(str(data.get('quantidade', '')))
-        preco = self._escape_zpl(str(data.get('preco', '')))
+        descricao2 = self._escape_zpl(str(data.get('descricao2', '')))
+        ref = self._escape_zpl(str(data.get('ref', codigo)))  # Usa codigo se ref não fornecido
+        pedido = self._escape_zpl(str(data.get('pedido', '')))
         codigo_barras = str(data.get('codigo_barras', codigo))  # Código de barras não precisa escape
+        lote = self._escape_zpl(str(data.get('lote', '')))
+        validade = self._escape_zpl(str(data.get('validade', '')))
         
         # Dimensões da etiqueta (ajuste conforme necessário)
         # Padrão: 4x2 polegadas (101.6mm x 50.8mm)
@@ -53,33 +60,48 @@ class ZPLGenerator:
         height = 200  # pontos (2 polegadas * 100 dpi)
         
         # Inicia comando ZPL
-        zpl = f"""
-^XA
-^FO20,20^A0N,30,30^FDCODIGO:^FS
-^FO20,50^A0N,25,25^FD{codigo}^FS
-"""
+        zpl = "^XA\n"
         
-        # Código de barras (Code 128)
-        if codigo_barras:
-            zpl += f"^FO20,80^BY2^BCN,50,Y,N,N^FD{codigo_barras}^FS\n"
-        
-        # Descrição
+        # Primeira linha: Descrição principal (ex: "JG DENTE ENDO 21 AO 27 RADIO")
+        y_pos = 20
         if descricao:
-            # Quebra linha se muito longa
-            desc_lines = self._wrap_text(descricao, 30)
-            y_pos = 140
-            for line in desc_lines[:2]:  # Máximo 2 linhas
-                zpl += f"^FO20,{y_pos}^A0N,20,20^FD{line}^FS\n"
-                y_pos += 25
+            # Limita tamanho da descrição para caber na etiqueta
+            desc_linha1 = descricao[:35] if len(descricao) > 35 else descricao
+            zpl += f"^FO20,{y_pos}^A0N,25,25^FD{desc_linha1}^FS\n"
+            y_pos += 30
         
-        # Quantidade
-        if quantidade:
-            zpl += f"^FO20,{y_pos}^A0N,20,20^FDQTD: {quantidade}^FS\n"
+        # Segunda linha: Descrição secundária (ex: "PACOS")
+        if descricao2:
+            zpl += f"^FO20,{y_pos}^A0N,25,25^FD{descricao2}^FS\n"
+            y_pos += 30
+        
+        # Linha com REF e Pedido lado a lado
+        if ref or pedido:
+            # REF no lado esquerdo
+            if ref:
+                zpl += f"^FO20,{y_pos}^A0N,20,20^FDREF: {ref}^FS\n"
+            # Pedido no lado direito (alinhado com REF)
+            if pedido:
+                # Calcula posição X para alinhar à direita (largura da etiqueta - margem - tamanho do texto)
+                # Aproximadamente 200 pontos de largura útil, então posiciona a partir de 180
+                zpl += f"^FO180,{y_pos}^A0N,20,20^FDPedido: {pedido}^FS\n"
             y_pos += 25
         
-        # Preço
-        if preco:
-            zpl += f"^FO20,{y_pos}^A0N,25,25^FDR$ {preco}^FS\n"
+        # Código de barras (Code 128) abaixo de REF/Pedido
+        if codigo_barras:
+            # Posição Y após REF/Pedido
+            zpl += f"^FO20,{y_pos}^BY2^BCN,50,Y,N,N^FD{codigo_barras}^FS\n"
+            # Altura do código de barras + texto abaixo dele
+            y_pos += 60
+        
+        # Lote abaixo do código de barras
+        if lote:
+            zpl += f"^FO20,{y_pos}^A0N,20,20^FDLote: {lote}^FS\n"
+            y_pos += 25
+        
+        # Validade abaixo do lote
+        if validade:
+            zpl += f"^FO20,{y_pos}^A0N,20,20^FDValidade: {validade}^FS\n"
         
         # Fim do comando
         zpl += "^XZ"

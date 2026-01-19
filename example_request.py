@@ -23,11 +23,14 @@ def print_label_example():
     data = {
         "label_type": "produto",
         "data": {
-            "codigo": "12345",
-            "descricao": "Produto XYZ - Descrição do Produto",
-            "quantidade": 10,
-            "preco": "29.90",
-            "codigo_barras": "1234567890123"
+            "codigo": "1420",
+            "descricao": "JG DENTE ENDO 21 AO 27 RADIO",
+            "descricao2": "PACOS",
+            "ref": "1420",
+            "pedido": "10511",
+            "codigo_barras": "7890000005098",
+            "lote": "10111150126",
+            "validade": "31/12/2025"
         }
     }
     

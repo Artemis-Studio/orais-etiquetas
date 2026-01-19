@@ -112,3 +112,4 @@ Se funcionar, você verá:
 
 **Para produção, use Python 3.12 ou 3.11** - essas versões têm melhor suporte de bibliotecas e são mais estáveis.
 
+
