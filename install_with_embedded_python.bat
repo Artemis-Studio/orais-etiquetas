@@ -53,15 +53,17 @@ REM Faz backup e configura o arquivo ._pth corretamente
 if exist "%PTH_FILE%" (
     copy "%PTH_FILE%" "%PTH_FILE%.bak" >nul 2>&1
     
-    REM Verifica se ja tem "import site" no arquivo
-    findstr /C:"import site" "%PTH_FILE%" >nul 2>&1
+    REM Verifica se ja tem "import site" ativo (sem #) no arquivo
+    findstr /C:"^import site" "%PTH_FILE%" >nul 2>&1
     if errorlevel 1 (
-        REM Usa PowerShell para ler o arquivo, preservar linhas que nao sao "import site" e adicionar "import site" no final
-        powershell -Command "$lines = Get-Content '%PTH_FILE%'; $newLines = @(); foreach ($line in $lines) { $trimmed = $line.Trim(); if ($trimmed -ne '' -and $trimmed -ne 'import site') { $newLines += $line } }; $newLines += 'import site'; $newLines | Set-Content '%PTH_FILE%' -Encoding UTF8"
+        REM Usa PowerShell para substituir "#import site" por "import site" ou adicionar se nao existir
+        powershell -Command "$content = Get-Content '%PTH_FILE%' -Raw; $content = $content -replace '#import site', 'import site'; if ($content -notmatch '(?m)^import site$') { $content = $content.TrimEnd() + \"`r`nimport site`r`n\" }; [System.IO.File]::WriteAllText('%PTH_FILE%', $content, [System.Text.Encoding]::UTF8)"
         if errorlevel 1 (
-            REM Fallback: metodo mais simples - le o arquivo e adiciona import site no final
-            for /f "delims=" %%a in ('type "%PTH_FILE%"') do (
-                echo %%a >> "%PTH_FILE%.tmp"
+            REM Fallback: substitui #import site por import site usando findstr e echo
+            findstr /V /C:"#import site" "%PTH_FILE%" > "%PTH_FILE%.tmp"
+            findstr /V /C:"^import site" "%PTH_FILE%.tmp" > "%PTH_FILE%.tmp2" 2>nul
+            if exist "%PTH_FILE%.tmp2" (
+                move /y "%PTH_FILE%.tmp2" "%PTH_FILE%.tmp" >nul 2>&1
             )
             echo import site >> "%PTH_FILE%.tmp"
             move /y "%PTH_FILE%.tmp" "%PTH_FILE%" >nul 2>&1
