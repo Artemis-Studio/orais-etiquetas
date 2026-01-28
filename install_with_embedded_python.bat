@@ -58,7 +58,7 @@ if exist "%PTH_FILE%" (
     if errorlevel 1 (
         REM Adiciona "import site" no final preservando o conteudo original
         REM Usa PowerShell para garantir que adiciona corretamente
-        powershell -Command "$lines = Get-Content '%PTH_FILE%'; $lines += 'import site'; $lines | Set-Content '%PTH_FILE%'"
+        powershell -Command "$lines = Get-Content '%PTH_FILE%' -Raw; if ($lines -notmatch 'import site') { $lines = $lines.TrimEnd() + \"`r`nimport site`r`n\"; Set-Content -Path '%PTH_FILE%' -Value $lines -NoNewline }"
         if errorlevel 1 (
             REM Fallback: metodo simples
             echo. >> "%PTH_FILE%"
@@ -93,7 +93,7 @@ del "%PYTHON_DIR%\get-pip.py"
 
 :install_deps
 echo [5/5] Instalando dependencias do projeto...
-"%PIP_EXE%" install -r "%~dp0requirements.txt"
+"%PYTHON_EXE%" -m pip install -r "%~dp0requirements.txt"
 if errorlevel 1 (
     echo ERRO: Falha ao instalar dependencias
     pause
