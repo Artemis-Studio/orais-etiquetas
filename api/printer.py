@@ -83,9 +83,10 @@ class PrinterManager:
         Returns:
             Nome da impressora a usar ou None se não encontrada
         """
+        printers = self.list_printers()
+        
         if printer_name:
             # Verifica se a impressora existe
-            printers = self.list_printers()
             if printer_name in printers:
                 return printer_name
             else:
@@ -93,12 +94,24 @@ class PrinterManager:
         
         # Usa impressora padrão configurada
         if self.default_printer:
-            printers = self.list_printers()
             if self.default_printer in printers:
                 return self.default_printer
+            else:
+                logger.warning(f"Impressora padrão configurada '{self.default_printer}' não encontrada")
         
         # Usa impressora padrão do sistema
-        return self.get_default_printer()
+        default = self.get_default_printer()
+        if default and default in printers:
+            return default
+        
+        # Se não há padrão, usa a primeira impressora disponível
+        if printers:
+            logger.info(f"Nenhuma impressora padrão encontrada, usando primeira disponível: {printers[0]}")
+            return printers[0]
+        
+        # Nenhuma impressora disponível
+        logger.error("Nenhuma impressora disponível no sistema")
+        return None
     
     def print_zpl(self, zpl_command: str, printer_name: Optional[str] = None) -> bool:
         """Imprime um comando ZPL na impressora especificada.

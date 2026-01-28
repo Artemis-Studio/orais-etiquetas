@@ -1,22 +1,22 @@
 @echo off
-REM Script de diagnóstico usando Python embeddable ou PATH
+REM Script para listar impressoras usando Python embeddable ou PATH
 cd /d "%~dp0"
 set "PYTHONPATH=%~dp0"
 
 echo ============================================================
-echo DIAGNOSTICO DE IMPRESSORAS
+echo LISTANDO IMPRESSORAS DISPONIVEIS
 echo ============================================================
 echo.
 
 REM Usar Python embeddable se existir; senao usar python do PATH
 if exist "%~dp0python312\python.exe" (
-    "%~dp0python312\python.exe" "%~dp0diagnostico_impressoras.py"
+    "%~dp0python312\python.exe" "%~dp0cli.py" list-printers
 ) else (
-    python "%~dp0diagnostico_impressoras.py"
+    python "%~dp0cli.py" list-printers
 )
 
 if errorlevel 1 (
     echo.
-    echo ERRO durante diagnostico!
+    echo ERRO ao listar impressoras!
     pause
 )
