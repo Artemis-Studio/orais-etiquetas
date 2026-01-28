@@ -1,4 +1,12 @@
 """Script para rodar a API diretamente (sem serviço Windows)."""
+import sys
+from pathlib import Path
+
+# Garante que a pasta do projeto esta em sys.path (funciona com Python embeddable)
+_root = Path(__file__).resolve().parent
+if str(_root) not in sys.path:
+    sys.path.insert(0, str(_root))
+
 import logging
 from api.main import run_server
 from config.config_loader import get_config
