@@ -125,14 +125,24 @@ def test_printer(ctx, printer):
               help='Código do produto')
 @click.option('--descricao', '-d', required=True,
               help='Descrição do produto')
+@click.option('--descricao2', default=None,
+              help='Descrição secundária (segunda linha)')
+@click.option('--ref', default=None,
+              help='Referência do produto (usa codigo se não fornecido)')
+@click.option('--pedido', default=None,
+              help='Número do pedido')
 @click.option('--quantidade', '-q', default=None,
               help='Quantidade')
 @click.option('--preco', default=None,
               help='Preço')
 @click.option('--codigo-barras', default=None,
               help='Código de barras')
+@click.option('--lote', default=None,
+              help='Número do lote')
+@click.option('--validade', default=None,
+              help='Data de validade')
 @click.pass_context
-def print_label(ctx, printer, codigo, descricao, quantidade, preco, codigo_barras):
+def print_label(ctx, printer, codigo, descricao, descricao2, ref, pedido, quantidade, preco, codigo_barras, lote, validade):
     """Imprime uma etiqueta diretamente (sem usar API)."""
     click.echo("[IMPRESSORA] Preparando impressao...\n")
     
@@ -150,12 +160,22 @@ def print_label(ctx, printer, codigo, descricao, quantidade, preco, codigo_barra
             "descricao": descricao
         }
         
+        if descricao2:
+            data["descricao2"] = descricao2
+        if ref:
+            data["ref"] = ref
+        if pedido:
+            data["pedido"] = pedido
         if quantidade:
             data["quantidade"] = quantidade
         if preco:
             data["preco"] = preco
         if codigo_barras:
             data["codigo_barras"] = codigo_barras
+        if lote:
+            data["lote"] = lote
+        if validade:
+            data["validade"] = validade
         
         # Gera ZPL
         zpl_generator = ZPLGenerator()
@@ -164,10 +184,22 @@ def print_label(ctx, printer, codigo, descricao, quantidade, preco, codigo_barra
         click.echo(f"[DADOS] Dados da etiqueta:")
         click.echo(f"   Código: {codigo}")
         click.echo(f"   Descrição: {descricao}")
+        if descricao2:
+            click.echo(f"   Descrição 2: {descricao2}")
+        if ref:
+            click.echo(f"   REF: {ref}")
+        if pedido:
+            click.echo(f"   Pedido: {pedido}")
         if quantidade:
             click.echo(f"   Quantidade: {quantidade}")
         if preco:
             click.echo(f"   Preço: R$ {preco}")
+        if codigo_barras:
+            click.echo(f"   Código de barras: {codigo_barras}")
+        if lote:
+            click.echo(f"   Lote: {lote}")
+        if validade:
+            click.echo(f"   Validade: {validade}")
         click.echo(f"\n[IMPRESSORA] Impressora: {printer_name}")
         click.echo("[ENVIANDO] Enviando para impressao...")
         
@@ -315,14 +347,26 @@ def process_queue(ctx):
               help='Código do produto')
 @click.option('--descricao', '-d', required=True,
               help='Descrição do produto')
+@click.option('--descricao2', default=None,
+              help='Descrição secundária (segunda linha)')
+@click.option('--ref', default=None,
+              help='Referência do produto (usa codigo se não fornecido)')
+@click.option('--pedido', default=None,
+              help='Número do pedido')
 @click.option('--quantidade', '-q', default=None,
               help='Quantidade')
 @click.option('--preco', default=None,
               help='Preço')
+@click.option('--codigo-barras', default=None,
+              help='Código de barras')
+@click.option('--lote', default=None,
+              help='Número do lote')
+@click.option('--validade', default=None,
+              help='Data de validade')
 @click.option('--printer', '-p', default=None,
               help='Nome da impressora')
 @click.pass_context
-def print_via_api(ctx, codigo, descricao, quantidade, preco, printer):
+def print_via_api(ctx, codigo, descricao, descricao2, ref, pedido, quantidade, preco, codigo_barras, lote, validade, printer):
     """Imprime uma etiqueta via API."""
     click.echo("[ENVIANDO] Enviando requisicao de impressao via API...\n")
     
@@ -338,20 +382,44 @@ def print_via_api(ctx, codigo, descricao, quantidade, preco, printer):
             }
         }
         
+        if descricao2:
+            data["data"]["descricao2"] = descricao2
+        if ref:
+            data["data"]["ref"] = ref
+        if pedido:
+            data["data"]["pedido"] = pedido
         if quantidade:
             data["data"]["quantidade"] = quantidade
         if preco:
             data["data"]["preco"] = preco
+        if codigo_barras:
+            data["data"]["codigo_barras"] = codigo_barras
+        if lote:
+            data["data"]["lote"] = lote
+        if validade:
+            data["data"]["validade"] = validade
         if printer:
             data["printer_name"] = printer
         
         click.echo(f"[DADOS] Dados:")
         click.echo(f"   Código: {codigo}")
         click.echo(f"   Descrição: {descricao}")
+        if descricao2:
+            click.echo(f"   Descrição 2: {descricao2}")
+        if ref:
+            click.echo(f"   REF: {ref}")
+        if pedido:
+            click.echo(f"   Pedido: {pedido}")
         if quantidade:
             click.echo(f"   Quantidade: {quantidade}")
         if preco:
             click.echo(f"   Preço: R$ {preco}")
+        if codigo_barras:
+            click.echo(f"   Código de barras: {codigo_barras}")
+        if lote:
+            click.echo(f"   Lote: {lote}")
+        if validade:
+            click.echo(f"   Validade: {validade}")
         click.echo()
         
         response = requests.post(url, json=data, headers=headers, timeout=10)

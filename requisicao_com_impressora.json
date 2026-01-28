@@ -1,0 +1,16 @@
+{
+  "label_type": "produto",
+  "data": {
+    "codigo": "1420",
+    "descricao": "JG DENTE ENDO 21 AO 27 RADIO",
+    "descricao2": "PACOS",
+    "ref": "1420",
+    "pedido": "10511",
+    "codigo_barras": "7890000005098",
+    "lote": "10111150126",
+    "validade": "31/12/2025",
+    "quantidade": "10",
+    "preco": "29.90"
+  },
+  "printer_name": "Zebra_ZT230"
+}

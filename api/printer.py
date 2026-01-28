@@ -24,17 +24,40 @@ class PrinterManager:
     def list_printers(self) -> List[str]:
         """Lista todas as impressoras disponíveis.
         
+        Busca impressoras locais, compartilhadas e conectadas.
+        
         Returns:
             Lista com nomes das impressoras
         """
         try:
             printers = []
-            printer_info = win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL)
+            printer_names = set()  # Usa set para evitar duplicatas
             
-            for printer in printer_info:
-                printers.append(printer[2])  # Nome da impressora
+            # Tenta listar impressoras locais
+            try:
+                printer_info = win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL)
+                for printer in printer_info:
+                    printer_names.add(printer[2])  # Nome da impressora
+            except Exception as e:
+                logger.warning(f"Erro ao listar impressoras locais: {e}")
             
-            return printers
+            # Tenta listar impressoras conectadas
+            try:
+                printer_info = win32print.EnumPrinters(win32print.PRINTER_ENUM_CONNECTED)
+                for printer in printer_info:
+                    printer_names.add(printer[2])
+            except Exception as e:
+                logger.warning(f"Erro ao listar impressoras conectadas: {e}")
+            
+            # Tenta listar impressoras compartilhadas (pode não ter acesso)
+            try:
+                printer_info = win32print.EnumPrinters(win32print.PRINTER_ENUM_SHARED)
+                for printer in printer_info:
+                    printer_names.add(printer[2])
+            except Exception as e:
+                logger.debug(f"Erro ao listar impressoras compartilhadas (pode ser normal): {e}")
+            
+            return sorted(list(printer_names))
         except Exception as e:
             logger.error(f"Erro ao listar impressoras: {e}")
             return []

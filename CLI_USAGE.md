@@ -55,16 +55,27 @@ Imprime uma etiqueta sem usar a API (comunicação direta com impressora):
 python cli.py print-label \
   --codigo "12345" \
   --descricao "Produto XYZ" \
+  --descricao2 "Linha secundária" \
+  --ref "REF123" \
+  --pedido "10511" \
   --quantidade "10" \
-  --preco "29.90"
+  --preco "29.90" \
+  --codigo-barras "7890000005098" \
+  --lote "10111150126" \
+  --validade "31/12/2025"
 ```
 
 **Opções:**
 - `-c, --codigo`: Código do produto (obrigatório)
 - `-d, --descricao`: Descrição do produto (obrigatório)
+- `--descricao2`: Descrição secundária - segunda linha (opcional)
+- `--ref`: Referência do produto (opcional, usa codigo se não fornecido)
+- `--pedido`: Número do pedido (opcional)
 - `-q, --quantidade`: Quantidade (opcional)
 - `--preco`: Preço (opcional)
 - `--codigo-barras`: Código de barras (opcional)
+- `--lote`: Número do lote (opcional)
+- `--validade`: Data de validade (opcional)
 - `-p, --printer`: Nome da impressora (opcional)
 
 ### 4. Verificar Status da API
@@ -131,9 +142,28 @@ Envia requisição de impressão através da API:
 python cli.py print-via-api \
   --codigo "12345" \
   --descricao "Produto XYZ" \
+  --descricao2 "Linha secundária" \
+  --ref "REF123" \
+  --pedido "10511" \
   --quantidade "10" \
-  --preco "29.90"
+  --preco "29.90" \
+  --codigo-barras "7890000005098" \
+  --lote "10111150126" \
+  --validade "31/12/2025"
 ```
+
+**Opções:**
+- `-c, --codigo`: Código do produto (obrigatório)
+- `-d, --descricao`: Descrição do produto (obrigatório)
+- `--descricao2`: Descrição secundária - segunda linha (opcional)
+- `--ref`: Referência do produto (opcional, usa codigo se não fornecido)
+- `--pedido`: Número do pedido (opcional)
+- `-q, --quantidade`: Quantidade (opcional)
+- `--preco`: Preço (opcional)
+- `--codigo-barras`: Código de barras (opcional)
+- `--lote`: Número do lote (opcional)
+- `--validade`: Data de validade (opcional)
+- `-p, --printer`: Nome da impressora (opcional)
 
 ### 8. Listar Impressoras via API
 
@@ -197,13 +227,15 @@ python cli.py list-printers
 python cli.py print-label \
   --codigo "TEST001" \
   --descricao "Teste de Impressão" \
-  --quantidade "1"
+  --quantidade "1" \
+  --codigo-barras "1234567890123"
 
 # 3. Testar via API (se API estiver rodando)
 python cli.py print-via-api \
   --codigo "TEST002" \
   --descricao "Teste via API" \
-  --quantidade "1"
+  --quantidade "1" \
+  --codigo-barras "1234567890123"
 ```
 
 ### Diagnóstico de Problemas
