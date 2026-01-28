@@ -9,9 +9,10 @@ set PYTHON_DIR=%~dp0python312
 set PYTHON_EXE=%PYTHON_DIR%\python.exe
 set PIP_EXE=%PYTHON_DIR%\Scripts\pip.exe
 
-REM Verifica se ja existe Python embeddable
+REM Verifica se ja existe Python embeddable (pergunta se quer reinstalar)
 if exist "%PYTHON_EXE%" (
     echo Python embeddable ja existe em %PYTHON_DIR%
+    echo Se houver problemas, delete a pasta python312 e execute novamente.
     echo.
     goto :install_deps
 )
@@ -43,18 +44,35 @@ if exist "%PYTHON_DIR%\python312._pth" (
 ) else if exist "%PYTHON_DIR%\python._pth" (
     set PTH_FILE=%PYTHON_DIR%\python._pth
 ) else (
-    echo AVISO: Arquivo ._pth nao encontrado, tentando criar...
-    set PTH_FILE=%PYTHON_DIR%\python312._pth
+    echo ERRO: Arquivo ._pth nao encontrado!
+    pause
+    exit /b 1
 )
 
+REM Faz backup e configura o arquivo ._pth corretamente
 if exist "%PTH_FILE%" (
     copy "%PTH_FILE%" "%PTH_FILE%.bak" >nul 2>&1
+    
+    REM Verifica se ja tem "import site" no arquivo
+    findstr /C:"import site" "%PTH_FILE%" >nul 2>&1
+    if errorlevel 1 (
+        REM Adiciona "import site" no final preservando o conteudo original
+        REM Usa PowerShell para garantir que adiciona corretamente
+        powershell -Command "$lines = Get-Content '%PTH_FILE%'; $lines += 'import site'; $lines | Set-Content '%PTH_FILE%'"
+        if errorlevel 1 (
+            REM Fallback: metodo simples
+            echo. >> "%PTH_FILE%"
+            echo import site >> "%PTH_FILE%"
+        )
+        echo Arquivo ._pth configurado com import site
+    ) else (
+        echo Arquivo ._pth ja configurado com import site
+    )
+) else (
+    echo ERRO: Arquivo ._pth nao encontrado apos descompactacao!
+    pause
+    exit /b 1
 )
-
-(
-    echo import site
-    echo import site-packages
-) > "%PTH_FILE%"
 
 echo [4/5] Instalando pip...
 curl -L -o "%PYTHON_DIR%\get-pip.py" "https://bootstrap.pypa.io/get-pip.py"
