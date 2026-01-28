@@ -4,12 +4,12 @@ api:
   api_key: ""  # Deixe vazio para desabilitar autenticação
 
 printer:
-  default_printer: ""  # Nome da impressora padrão (deixe vazio para usar a primeira disponível)
+  default_printer: ""  
   timeout: 30  # Timeout em segundos para operações de impressão
   retry_attempts: 3  # Número de tentativas em caso de falha
 
 queue:
-  check_interval: 5  # Intervalo em segundos para verificar a fila
+  check_interval: 30  # Intervalo em segundos para verificar a fila
   max_retries: 3  # Máximo de tentativas antes de marcar como falha
 
 logging:
