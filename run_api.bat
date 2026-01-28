@@ -1,5 +1,6 @@
 @echo off
 cd /d "%~dp0"
+set "PYTHONPATH=%~dp0"
 
 REM Usar Python embeddable se existir; senao usar python do PATH
 if exist "%~dp0python312\python.exe" (

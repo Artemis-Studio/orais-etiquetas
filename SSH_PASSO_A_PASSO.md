@@ -131,23 +131,47 @@ A API sobe em background e segue rodando depois de você sair do SSH.
 
 ### 3B.3. Ver se a API está rodando
 
-```powershell
-Get-Process -Name python -ErrorAction SilentlyContinue
+**No CMD:**
+```cmd
+tasklist | findstr python
+curl http://localhost:8000/status
 ```
 
-Ou testar o endpoint:
-
+**No PowerShell:**
 ```powershell
+Get-Process -Name python -ErrorAction SilentlyContinue
 curl http://localhost:8000/status
 ```
 
 ### 3B.4. Parar a API (quando estiver em background)
 
+**No CMD:**
+```cmd
+taskkill /F /IM python.exe
+```
+
+**No PowerShell:**
 ```powershell
 Get-Process -Name python -ErrorAction SilentlyContinue | Stop-Process -Force
 ```
 
 *(Isso encerra todos os processos Python. Se houver outros, use o PID específico.)*
+
+### 3B.5. API não sobe / `curl` falha ("Could not connect")
+
+1. **Rodar em primeiro plano** para ver o erro na tela:
+   ```cmd
+   cd C:\Users\remoto\Desktop\orais-etiquetas
+   .\run_api.bat
+   ```
+   Deixe rodar; o que aparecer no terminal é o erro (import, porta, etc.).
+
+2. **Ver logs de erro do background:**
+   ```cmd
+   type logs\api_background_err.txt
+   type logs\api.log
+   ```
+   O `run_api_background.bat` grava erros de arranque em `logs\api_background_err.txt`.
 
 ---
 
@@ -178,6 +202,12 @@ curl http://localhost:8000/status
 - Serviço ou API: logs em `config\config.yaml` → `logging.file` (ex.: `logs/api.log`).
 - Ver últimas linhas:
 
+**No CMD:**
+```cmd
+type logs\api.log
+```
+
+**No PowerShell:**
 ```powershell
 Get-Content .\logs\api.log -Tail 50
 ```
