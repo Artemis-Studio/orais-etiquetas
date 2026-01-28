@@ -56,13 +56,15 @@ if exist "%PTH_FILE%" (
     REM Verifica se ja tem "import site" no arquivo
     findstr /C:"import site" "%PTH_FILE%" >nul 2>&1
     if errorlevel 1 (
-        REM Adiciona "import site" no final preservando o conteudo original
-        REM Usa PowerShell para garantir que adiciona corretamente
-        powershell -Command "$lines = Get-Content '%PTH_FILE%' -Raw; if ($lines -notmatch 'import site') { $lines = $lines.TrimEnd() + \"`r`nimport site`r`n\"; Set-Content -Path '%PTH_FILE%' -Value $lines -NoNewline }"
+        REM Usa PowerShell para ler o arquivo, preservar linhas que nao sao "import site" e adicionar "import site" no final
+        powershell -Command "$lines = Get-Content '%PTH_FILE%'; $newLines = @(); foreach ($line in $lines) { $trimmed = $line.Trim(); if ($trimmed -ne '' -and $trimmed -ne 'import site') { $newLines += $line } }; $newLines += 'import site'; $newLines | Set-Content '%PTH_FILE%' -Encoding UTF8"
         if errorlevel 1 (
-            REM Fallback: metodo simples
-            echo. >> "%PTH_FILE%"
-            echo import site >> "%PTH_FILE%"
+            REM Fallback: metodo mais simples - le o arquivo e adiciona import site no final
+            for /f "delims=" %%a in ('type "%PTH_FILE%"') do (
+                echo %%a >> "%PTH_FILE%.tmp"
+            )
+            echo import site >> "%PTH_FILE%.tmp"
+            move /y "%PTH_FILE%.tmp" "%PTH_FILE%" >nul 2>&1
         )
         echo Arquivo ._pth configurado com import site
     ) else (
@@ -90,6 +92,29 @@ if errorlevel 1 (
 )
 
 del "%PYTHON_DIR%\get-pip.py"
+
+REM Garante que site-packages existe
+if not exist "%PYTHON_DIR%\Lib\site-packages" (
+    mkdir "%PYTHON_DIR%\Lib\site-packages"
+)
+
+REM Mostra o conteudo do arquivo ._pth para debug
+echo.
+echo Verificando arquivo ._pth:
+type "%PTH_FILE%"
+echo.
+
+REM Testa se pip esta funcionando
+echo Testando instalacao do pip...
+"%PYTHON_EXE%" -m pip --version
+if errorlevel 1 (
+    echo.
+    echo ERRO: pip nao esta funcionando.
+    echo Verifique o arquivo ._pth acima.
+    echo O arquivo deve terminar com "import site" em uma linha separada.
+    pause
+    exit /b 1
+)
 
 :install_deps
 echo [5/5] Instalando dependencias do projeto...
