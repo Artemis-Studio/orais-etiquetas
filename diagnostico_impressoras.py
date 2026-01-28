@@ -47,17 +47,17 @@ def diagnostico_completo():
         print(f"        ✗ Erro: {e}")
     print()
     
-    # Impressoras conectadas
-    print("    [2.2] Impressoras CONECTADAS:")
+    # Impressoras conectadas (conexões anteriores)
+    print("    [2.2] Impressoras CONECTADAS (conexões anteriores):")
     try:
-        connected_printers = win32print.EnumPrinters(win32print.PRINTER_ENUM_CONNECTED)
+        connected_printers = win32print.EnumPrinters(4)  # PRINTER_ENUM_CONNECTIONS = 4
         if connected_printers:
             for printer in connected_printers:
                 print(f"        ✓ {printer[2]}")
         else:
             print("        ✗ Nenhuma impressora conectada encontrada")
     except Exception as e:
-        print(f"        ✗ Erro: {e}")
+        print(f"        ✗ Erro (pode ser normal): {e}")
     print()
     
     # Impressoras compartilhadas

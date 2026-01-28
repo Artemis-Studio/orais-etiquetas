@@ -30,7 +30,6 @@ class PrinterManager:
             Lista com nomes das impressoras
         """
         try:
-            printers = []
             printer_names = set()  # Usa set para evitar duplicatas
             
             # Tenta listar impressoras locais
@@ -41,15 +40,16 @@ class PrinterManager:
             except Exception as e:
                 logger.warning(f"Erro ao listar impressoras locais: {e}")
             
-            # Tenta listar impressoras conectadas
+            # Tenta listar impressoras conectadas (conexões anteriores)
             try:
-                printer_info = win32print.EnumPrinters(win32print.PRINTER_ENUM_CONNECTED)
+                # PRINTER_ENUM_CONNECTIONS = 4
+                printer_info = win32print.EnumPrinters(4)
                 for printer in printer_info:
                     printer_names.add(printer[2])
             except Exception as e:
-                logger.warning(f"Erro ao listar impressoras conectadas: {e}")
+                logger.debug(f"Erro ao listar impressoras conectadas (pode ser normal): {e}")
             
-            # Tenta listar impressoras compartilhadas (pode não ter acesso)
+            # Tenta listar impressoras compartilhadas
             try:
                 printer_info = win32print.EnumPrinters(win32print.PRINTER_ENUM_SHARED)
                 for printer in printer_info:
