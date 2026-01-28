@@ -1,8 +1,33 @@
 @echo off
+cd /d "%~dp0"
+
 echo ========================================
 echo Instalacao Automatica com Python Embeddable
 echo ========================================
 echo.
+
+REM Servico Windows exige Executar como Administrador
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Este script precisa ser executado como ADMINISTRADOR
+    echo para instalar o servico Windows e evitar "Acesso negado".
+    echo.
+    echo Como fazer:
+    echo   1. Clique com o botao direito em install_with_embedded_python.bat
+    echo   2. Escolha "Executar como administrador"
+    echo.
+    echo Ou abra CMD/PowerShell como Administrador, va ate a pasta do projeto
+    echo e execute: install_with_embedded_python.bat
+    echo.
+    choice /C SN /M "Abrir como Administrador agora"
+    if errorlevel 2 (
+        echo Execute o script como Administrador quando quiser instalar o servico.
+        pause
+        exit /b 1
+    )
+    powershell -Command "Start-Process -FilePath '%~f0' -Verb RunAs -WorkingDirectory '%~dp0'"
+    exit /b 0
+)
 
 REM Define diretorio do Python embeddable
 set PYTHON_DIR=%~dp0python312
@@ -163,5 +188,8 @@ echo   sc query LabelPrintingAPI
 echo.
 echo Para desinstalar o servico:
 echo   "%PYTHON_EXE%" "%~dp0service\windows_service.py" remove
+echo.
+echo Para rodar a API sem servico (teste): execute run_api.bat
+echo Para iniciar o servico com duplo clique: execute start_service.bat
 echo.
 pause

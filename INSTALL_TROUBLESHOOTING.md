@@ -77,6 +77,32 @@ python -m pip install git+https://github.com/mhammond/pywin32.git
 
 ## Erros Comuns
 
+### Erro: "Acesso negado. (5)" ao instalar o serviço Windows
+
+**Causa**: A instalação do serviço exige **Executar como Administrador**. O pywin32 precisa copiar DLLs e registrar o serviço.
+
+**Solução**:
+1. Feche outros terminais que usem Python (evita bloquear DLLs).
+2. Clique com o botão direito em **install_with_embedded_python.bat** (ou **install_service.bat**) e escolha **"Executar como administrador"**.
+3. Ou abra CMD/PowerShell **como Administrador** (botão direito no menu Iniciar), vá até a pasta do projeto e execute o script.
+
+Se usar **install_with_embedded_python.bat**, ele pode perguntar se deseja abrir como Administrador; aceite para subir com permissões elevadas.
+
+### Erro: "Python não encontrado" / "pip não é reconhecido" (com Python embeddable)
+
+**Causa**: O Python embeddable (`python312\`) não está no PATH. Os comandos `python` e `pip` só funcionam se o Python global estiver no PATH.
+
+**Solução**:
+- Use os scripts `.bat` do projeto, que detectam o Python embeddable:
+  - **run_api.bat** – roda a API (sem serviço): dê dois cliques ou execute no terminal.
+  - **install_service.bat** – instala dependências e serviço; usa `python312\` se existir. Execute **como Administrador**.
+- Para instalar o serviço com embeddable: use **install_with_embedded_python.bat** **como Administrador** (ele usa o Python em `python312\`).
+- Para comandos manuais, use o caminho completo, por exemplo:
+  ```bat
+  "C:\Users\remoto\Desktop\orais-etiquetas\python312\python.exe" run_api.py
+  "C:\Users\remoto\Desktop\orais-etiquetas\python312\python.exe" -m pip install -r requirements.txt
+  ```
+
 ### Erro: "subprocess-exited-with-error"
 
 **Causa**: Algum pacote precisa compilar e não tem wheel pré-compilado para Python 3.14.

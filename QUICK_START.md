@@ -55,6 +55,10 @@ No n8n, use o nó **HTTP Request**:
   }
   ```
 
+## Uso via SSH no Windows
+
+Se você conecta por **SSH** no Windows, use o guia **SSH_PASSO_A_PASSO.md** (instalação, serviço, API em background).
+
 ## Comandos Úteis
 
 ```bash
