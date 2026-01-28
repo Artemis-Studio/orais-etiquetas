@@ -36,6 +36,13 @@ if errorlevel 1 (
 
 del python-embed.zip
 
+REM Verifica se python312.zip existe (necessario para Python embeddable funcionar)
+if not exist "%PYTHON_DIR%\python312.zip" (
+    echo ERRO: python312.zip nao encontrado apos descompactacao!
+    pause
+    exit /b 1
+)
+
 REM Habilita site-packages no Python embeddable
 echo [3/5] Configurando Python embeddable...
 REM Encontra o arquivo ._pth (geralmente python312._pth para Python 3.12.2)
@@ -56,17 +63,17 @@ if exist "%PTH_FILE%" (
     REM Verifica se ja tem "import site" ativo (sem #) no arquivo
     findstr /C:"^import site" "%PTH_FILE%" >nul 2>&1
     if errorlevel 1 (
-        REM Usa PowerShell para substituir "#import site" por "import site" ou adicionar se nao existir
-        powershell -Command "$content = Get-Content '%PTH_FILE%' -Raw; $content = $content -replace '#import site', 'import site'; if ($content -notmatch '(?m)^import site$') { $content = $content.TrimEnd() + \"`r`nimport site`r`n\" }; [System.IO.File]::WriteAllText('%PTH_FILE%', $content, [System.Text.Encoding]::UTF8)"
+        REM Usa PowerShell para ler o arquivo original, processar e salvar SEM BOM (UTF-8 sem BOM)
+        REM Isso e critico - Python embeddable nao aceita BOM no arquivo ._pth
+        powershell -Command "$lines = Get-Content '%PTH_FILE%'; $newLines = @(); $hasActiveImport = $false; foreach ($line in $lines) { $trimmed = $line.Trim(); if ($trimmed -eq 'import site') { $hasActiveImport = $true; $newLines += 'import site' } elseif ($trimmed -eq '#import site') { $hasActiveImport = $true; $newLines += 'import site' } else { $newLines += $line } }; if (-not $hasActiveImport) { $newLines += 'import site' }; $utf8NoBom = New-Object System.Text.UTF8Encoding $false; [System.IO.File]::WriteAllLines('%PTH_FILE%', $newLines, $utf8NoBom)"
         if errorlevel 1 (
-            REM Fallback: substitui #import site por import site usando findstr e echo
-            findstr /V /C:"#import site" "%PTH_FILE%" > "%PTH_FILE%.tmp"
-            findstr /V /C:"^import site" "%PTH_FILE%.tmp" > "%PTH_FILE%.tmp2" 2>nul
-            if exist "%PTH_FILE%.tmp2" (
-                move /y "%PTH_FILE%.tmp2" "%PTH_FILE%.tmp" >nul 2>&1
-            )
+            REM Fallback: metodo mais simples
+            REM Remove linhas com import site (com ou sem #) e adiciona no final
+            findstr /V /C:"import site" "%PTH_FILE%" > "%PTH_FILE%.tmp"
             echo import site >> "%PTH_FILE%.tmp"
-            move /y "%PTH_FILE%.tmp" "%PTH_FILE%" >nul 2>&1
+            REM Remove BOM se existir usando PowerShell
+            powershell -Command "$content = Get-Content '%PTH_FILE%.tmp' -Raw; $utf8NoBom = New-Object System.Text.UTF8Encoding $false; [System.IO.File]::WriteAllText('%PTH_FILE%', $content, $utf8NoBom)"
+            del "%PTH_FILE%.tmp" >nul 2>&1
         )
         echo Arquivo ._pth configurado com import site
     ) else (
