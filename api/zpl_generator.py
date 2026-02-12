@@ -54,54 +54,48 @@ class ZPLGenerator:
         lote = self._escape_zpl(str(data.get('lote', '')))
         validade = self._escape_zpl(str(data.get('validade', '')))
         
-        # Dimensões da etiqueta (ajuste conforme necessário)
-        # Padrão: 4x2 polegadas (101.6mm x 50.8mm)
-        width = 400  # pontos (4 polegadas * 100 dpi)
-        height = 200  # pontos (2 polegadas * 100 dpi)
+        # Dimensões da etiqueta: 50mm x 25mm, 2 colunas (203 dpi: ~8 pontos/mm)
+        width_dots = 400   # 50mm
+        height_dots = 200  # 25mm
+        margin = 5
         
-        # Inicia comando ZPL
-        zpl = "^XA\n"
+        # Inicia comando ZPL com tamanho da etiqueta (^PW = largura, ^LL = comprimento)
+        zpl = f"^XA\n^PW{width_dots}^LL{height_dots}^LH0,0\n"
         
-        # Primeira linha: Descrição principal (ex: "JG DENTE ENDO 21 AO 27 RADIO")
-        y_pos = 20
+        # Layout compacto para caber em 25mm de altura
+        y_pos = margin
+        # Primeira linha: Descrição principal (fonte menor)
         if descricao:
-            # Limita tamanho da descrição para caber na etiqueta
-            desc_linha1 = descricao[:35] if len(descricao) > 35 else descricao
-            zpl += f"^FO20,{y_pos}^A0N,25,25^FD{desc_linha1}^FS\n"
-            y_pos += 30
+            desc_linha1 = descricao[:28] if len(descricao) > 28 else descricao
+            zpl += f"^FO{margin},{y_pos}^A0N,14,14^FD{desc_linha1}^FS\n"
+            y_pos += 16
         
-        # Segunda linha: Descrição secundária (ex: "PACOS")
+        # Segunda linha: Descrição secundária
         if descricao2:
-            zpl += f"^FO20,{y_pos}^A0N,25,25^FD{descricao2}^FS\n"
-            y_pos += 30
+            zpl += f"^FO{margin},{y_pos}^A0N,12,12^FD{descricao2}^FS\n"
+            y_pos += 14
         
-        # Linha com REF e Pedido lado a lado
+        # REF e Pedido na mesma linha (fonte pequena)
         if ref or pedido:
-            # REF no lado esquerdo
             if ref:
-                zpl += f"^FO20,{y_pos}^A0N,20,20^FDREF: {ref}^FS\n"
-            # Pedido no lado direito (alinhado com REF)
+                zpl += f"^FO{margin},{y_pos}^A0N,11,11^FDREF:{ref}^FS\n"
             if pedido:
-                # Calcula posição X para alinhar à direita (largura da etiqueta - margem - tamanho do texto)
-                # Aproximadamente 200 pontos de largura útil, então posiciona a partir de 180
-                zpl += f"^FO180,{y_pos}^A0N,20,20^FDPedido: {pedido}^FS\n"
-            y_pos += 25
+                zpl += f"^FO{width_dots - 120},{y_pos}^A0N,11,11^FDPed:{pedido}^FS\n"
+            y_pos += 13
         
-        # Código de barras (Code 128) abaixo de REF/Pedido
+        # Código de barras (Code 128) compacto
         if codigo_barras:
-            # Posição Y após REF/Pedido
-            zpl += f"^FO20,{y_pos}^BY2^BCN,50,Y,N,N^FD{codigo_barras}^FS\n"
-            # Altura do código de barras + texto abaixo dele
-            y_pos += 60
+            zpl += f"^FO{margin},{y_pos}^BY1^BCN,28,Y,N,N^FD{codigo_barras}^FS\n"
+            y_pos += 38
         
-        # Lote abaixo do código de barras
-        if lote:
-            zpl += f"^FO20,{y_pos}^A0N,20,20^FDLote: {lote}^FS\n"
-            y_pos += 25
-        
-        # Validade abaixo do lote
-        if validade:
-            zpl += f"^FO20,{y_pos}^A0N,20,20^FDValidade: {validade}^FS\n"
+        # Lote e Validade numa linha (fonte pequena)
+        if lote or validade:
+            linha_extra = []
+            if lote:
+                linha_extra.append(f"Lote:{lote}")
+            if validade:
+                linha_extra.append(f"Val:{validade}")
+            zpl += f"^FO{margin},{y_pos}^A0N,10,10^FD{' '.join(linha_extra)}^FS\n"
         
         # Fim do comando
         zpl += "^XZ"
