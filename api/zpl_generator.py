@@ -93,16 +93,18 @@ class ZPLGenerator:
         # ^PW = largura total, ^LL = altura
         zpl = f"^XA\n^CI28\n^PQ1\n^LH{margin_left},{margin_top}^PW{total_width}^LL{label_height}\n"
         
-        # Layout: tudo alinhado à esquerda (evita problema de calibração no centro)
-        # Ordem: Descrição → REF | Pedido → Lote | Val → Código de barras (último)
+        # Layout em grid 2 colunas: melhor aproveitamento da área
+        # Descrição e código de barras ocupam as 2 colunas | REF/Ped | Lote/Val nas colunas
         y_pos = content_margin
-        line_spacing = 1.2
-        x_left = content_margin  # posição fixa à esquerda - não depende de label_width
+        line_spacing = 1.15
+        col_width_mm = 22  # largura por coluna do grid
+        x_left = content_margin
+        x_right = content_margin + int(col_width_mm * dots_per_mm)
 
-        # 1. Descrição
+        # 1. DESCRIÇÃO (ocupa as 2 colunas - mais chars por linha)
         desc_completa = f"{descricao} {descricao2}".strip() if (descricao or descricao2) else ""
         if desc_completa:
-            max_chars_linha = 22
+            max_chars_linha = 32  # ~2 colunas
             linhas_desc = self._wrap_text(desc_completa, max_chars_linha)[:2]
             for linha in linhas_desc:
                 if linha.strip():
@@ -110,28 +112,26 @@ class ZPLGenerator:
                     y_pos += int(f_desc * line_spacing)
             y_pos += int(2 * dots_per_mm)
 
-        # 2. REF e Pedido (mesma linha, ambos à esquerda)
+        # 2. GRID 2 colunas: REF/Pedido | Lote/Val
+        y_grid = y_pos
         if ref or pedido:
             partes = []
             if ref:
-                partes.append(f"REF:{ref[:10]}")
+                partes.append(f"REF:{ref[:8]}")
             if pedido:
-                partes.append(f"Ped:{pedido[:10]}")
-            zpl += f"^FO{x_left},{y_pos}^A0N,{f_ref},{f_ref}^FD{'  '.join(partes)}^FS\n"
-            y_pos += int(f_ref * line_spacing)
-
-        # 3. Lote e Validade (mesma linha, alinhado à esquerda)
+                partes.append(f"Ped:{pedido[:8]}")
+            zpl += f"^FO{x_left},{y_grid}^A0N,{f_ref},{f_ref}^FD{'  '.join(partes)}^FS\n"
         if lote or validade:
             partes = []
             if lote:
-                partes.append(f"Lote:{lote[:8]}")
+                partes.append(f"Lote:{lote[:6]}")
             if validade:
-                partes.append(f"Val:{validade[:10]}")
-            zpl += f"^FO{x_left},{y_pos}^A0N,{f_lote},{f_lote}^FD{'  '.join(partes)}^FS\n"
-            y_pos += int(f_lote * line_spacing)
-            y_pos += int(3 * dots_per_mm)
+                partes.append(f"Val:{validade[:8]}")
+            zpl += f"^FO{x_right},{y_grid}^A0N,{f_lote},{f_lote}^FD{'  '.join(partes)}^FS\n"
+        y_pos = y_grid + int(f_ref * line_spacing)
+        y_pos += int(3 * dots_per_mm)
 
-        # 4. Código de barras (último, alinhado à esquerda - evita erro de centralização)
+        # 3. CÓDIGO DE BARRAS (ocupa área das 2 colunas, último)
         if codigo_barras:
             if len(codigo_barras) == 13 and codigo_barras.isdigit():
                 zpl += f"^FO{x_left},{y_pos}^BY2^BEN,{f_barcode},Y,N^FD{codigo_barras}^FS\n"
