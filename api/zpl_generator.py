@@ -56,14 +56,15 @@ class ZPLGenerator:
         lote = self._escape_zpl(str(data.get('lote', '')))
         validade = self._escape_zpl(str(data.get('validade', '')))
         
-        # Dimensões 50mm x 25mm - DPI em config (203 ou 300)
+        # Dimensões: rolo 2 colunas de 50x25mm (100mm largura total)
         try:
             dpi = get_config().get_label_dpi()
         except Exception:
             dpi = 300
         dots_per_mm = dpi / 25.4
-        width_dots = int(50 * dots_per_mm)   # 50mm
-        height_dots = int(25 * dots_per_mm)  # 25mm
+        label_width = int(50 * dots_per_mm)   # 50mm - uma coluna
+        label_height = int(25 * dots_per_mm)  # 25mm
+        total_width = label_width * 2         # 100mm - largura total do rolo (2 colunas)
         margin = max(5, int(8 * dots_per_mm / 8))
         # Escala de fontes (base para 203 dpi, maior para 300 dpi)
         scale = dpi / 203
@@ -73,10 +74,11 @@ class ZPLGenerator:
         f_barcode = max(28, int(36 * scale))
         f_lote = max(12, int(12 * scale))
         
-        # ^PQ1 = imprimir apenas 1 cópia (evita 2 etiquetas)
-        # ^LH0,0 = origem no canto superior esquerdo
-        # ^CI28 = UTF-8 para acentos
-        zpl = f"^XA\n^CI28\n^PQ1\n^PW{width_dots}^LL{height_dots}^LH0,0\n"
+        # ^PW = largura total do rolo (2 colunas)
+        # ^LL = altura de uma etiqueta
+        # Conteúdo restrito à coluna esquerda (x entre 0 e label_width)
+        # ^PQ1 = 1 cópia apenas
+        zpl = f"^XA\n^CI28\n^PQ1\n^PW{total_width}^LL{label_height}^LH0,0\n"
         
         # Layout: descricao, descricao2, REF|Pedido, código de barras
         y_pos = margin
@@ -97,7 +99,7 @@ class ZPLGenerator:
             if ref:
                 zpl += f"^FO{margin},{y_pos}^A0N,{f_ref},{f_ref}^FDREF:{ref}^FS\n"
             if pedido:
-                zpl += f"^FO{width_dots - int(90 * scale)},{y_pos}^A0N,{f_ref},{f_ref}^FDPedido:{pedido}^FS\n"
+                zpl += f"^FO{label_width - int(90 * scale)},{y_pos}^A0N,{f_ref},{f_ref}^FDPedido:{pedido}^FS\n"
             y_pos += int(f_ref * 1.2)
         
         # Código de barras (altura proporcional ao DPI)
