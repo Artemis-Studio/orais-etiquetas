@@ -160,11 +160,11 @@ class ZPLGenerator:
         margin_right = int(margin_right_mm * dots_per_mm)
         total_width = margin_left + label_width * 2 + margin_right if dual_column else margin_left + label_width
         t = 6  # espessura bordas (6 dots = visível em 300dpi)
-        f_num = 28   # números da régua - bem grandes
-        f_tit = 22   # títulos [ESQ]/[DIR]
-        f_ref = 20   # 0mm, 50mm, etc.
-        
-        zpl = f"^XA\n^CI28\n^PQ1\n^MD15\n^LH{margin_left},0^PW{total_width}^LL{label_height}\n"
+        f_num = 32   # números da régua - máximo legibilidade (antes 28)
+        f_tit = 24   # títulos [ESQ]/[DIR]
+        f_ref = 22   # 0mm, 50mm, etc.
+        # ^MD20 = densidade alta (0-30) para números não ficarem fracos na base
+        zpl = f"^XA\n^CI28\n^PQ1\n^MD20\n^LS0\n^LH{margin_left},0^PW{total_width}^LL{label_height}\n"
         
         # === COLUNA ESQUERDA: só as 4 bordas (sem ticks no meio - evita "risco") ===
         zpl += f"^FO0,0^GB{label_width},{t},{t}^FS\n"
