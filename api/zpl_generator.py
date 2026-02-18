@@ -166,10 +166,11 @@ class ZPLGenerator:
         # ^MD20 = densidade alta (0-30) para números não ficarem fracos na base
         zpl = f"^XA\n^CI28\n^PQ1\n^MD20\n^LS0\n^LH{margin_left},0^PW{total_width}^LL{label_height}\n"
         
-        # === COLUNA ESQUERDA: só as 4 bordas (sem ticks no meio - evita "risco") ===
+        # === COLUNA ESQUERDA: esquerda, topo, base. Direita = divisória compartilhada ===
         zpl += f"^FO0,0^GB{label_width},{t},{t}^FS\n"
         zpl += f"^FO0,{label_height-t}^GB{label_width},{t},{t}^FS\n"
         zpl += f"^FO0,0^GB{t},{label_height},{t}^FS\n"
+        # Divisa col1|col2: UMA linha só (evita risco grosso cortando números)
         zpl += f"^FO{label_width-t},0^GB{t},{label_height},{t}^FS\n"
         
         # Números horizontal (10,20,30,40mm) - na base, fonte grande
@@ -194,7 +195,7 @@ class ZPLGenerator:
             x_dir = label_width
             zpl += f"^FO{x_dir},0^GB{label_width},{t},{t}^FS\n"
             zpl += f"^FO{x_dir},{label_height-t}^GB{label_width},{t},{t}^FS\n"
-            zpl += f"^FO{x_dir},0^GB{t},{label_height},{t}^FS\n"
+            # Não desenha borda esquerda col2 (já existe borda direita col1 em label_width-t)
             zpl += f"^FO{x_dir + label_width - t},0^GB{t},{label_height},{t}^FS\n"
             for mm in range(10, min(50, label_width_mm), 10):
                 x = x_dir + int(mm * dots_per_mm)
