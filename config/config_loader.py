@@ -79,6 +79,10 @@ class Config:
         """Retorna o timeout da impressora em segundos."""
         return self.get('printer.timeout', 30)
     
+    def get_label_dpi(self) -> int:
+        """Retorna o DPI da impressora para etiquetas (203 ou 300)."""
+        return self.get('printer.label_dpi', 300)
+    
     def get_retry_attempts(self) -> int:
         """Retorna o número de tentativas de retry."""
         return self.get('printer.retry_attempts', 3)

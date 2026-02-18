@@ -2,6 +2,7 @@
 Compatível com layout do Sistema de Etiquetas v07.2 (50x25mm, 2 colunas).
 """
 from typing import Dict, Optional
+from config.config_loader import get_config
 
 
 class ZPLGenerator:
@@ -55,46 +56,57 @@ class ZPLGenerator:
         lote = self._escape_zpl(str(data.get('lote', '')))
         validade = self._escape_zpl(str(data.get('validade', '')))
         
-        # Dimensões da etiqueta: 50mm x 25mm, 2 colunas no rolo (203 dpi: ~8 pontos/mm)
-        width_dots = 400   # 50mm
-        height_dots = 200  # 25mm
-        margin = 5
+        # Dimensões 50mm x 25mm - DPI em config (203 ou 300)
+        try:
+            dpi = get_config().get_label_dpi()
+        except Exception:
+            dpi = 300
+        dots_per_mm = dpi / 25.4
+        width_dots = int(50 * dots_per_mm)   # 50mm
+        height_dots = int(25 * dots_per_mm)  # 25mm
+        margin = max(5, int(8 * dots_per_mm / 8))
+        # Escala de fontes (base para 203 dpi, maior para 300 dpi)
+        scale = dpi / 203
+        f_desc = max(18, int(18 * scale))
+        f_desc2 = max(15, int(15 * scale))
+        f_ref = max(14, int(14 * scale))
+        f_barcode = max(28, int(36 * scale))
+        f_lote = max(12, int(12 * scale))
         
-        # Inicia ZPL - ^CI28 para UTF-8 (caracteres acentuados corretos, ex: DENTE ENDO)
-        zpl = f"^XA\n^CI28\n^PW{width_dots}^LL{height_dots}^LH0,0\n"
+        # ^PQ1 = imprimir apenas 1 cópia (evita 2 etiquetas)
+        # ^LH0,0 = origem no canto superior esquerdo
+        # ^CI28 = UTF-8 para acentos
+        zpl = f"^XA\n^CI28\n^PQ1\n^PW{width_dots}^LL{height_dots}^LH0,0\n"
         
-        # Layout igual ao sistema antigo: descricao, descricao2, REF|Pedido, código de barras
+        # Layout: descricao, descricao2, REF|Pedido, código de barras
         y_pos = margin
         
         # Primeira linha: Descrição principal
         if descricao:
             desc_linha1 = descricao[:28] if len(descricao) > 28 else descricao
-            zpl += f"^FO{margin},{y_pos}^A0N,14,14^FD{desc_linha1}^FS\n"
-            y_pos += 16
+            zpl += f"^FO{margin},{y_pos}^A0N,{f_desc},{f_desc}^FD{desc_linha1}^FS\n"
+            y_pos += int(f_desc * 1.2)
         
         # Segunda linha: Descrição secundária (ex: PACOS)
         if descricao2:
-            zpl += f"^FO{margin},{y_pos}^A0N,12,12^FD{descricao2}^FS\n"
-            y_pos += 14
+            zpl += f"^FO{margin},{y_pos}^A0N,{f_desc2},{f_desc2}^FD{descricao2}^FS\n"
+            y_pos += int(f_desc2 * 1.2)
         
-        # REF e Pedido na mesma linha (duas colunas, como no sistema antigo)
+        # REF e Pedido na mesma linha
         if ref or pedido:
             if ref:
-                zpl += f"^FO{margin},{y_pos}^A0N,11,11^FDREF:{ref}^FS\n"
+                zpl += f"^FO{margin},{y_pos}^A0N,{f_ref},{f_ref}^FDREF:{ref}^FS\n"
             if pedido:
-                zpl += f"^FO{width_dots - 120},{y_pos}^A0N,11,11^FDPedido:{pedido}^FS\n"
-            y_pos += 13
+                zpl += f"^FO{width_dots - int(90 * scale)},{y_pos}^A0N,{f_ref},{f_ref}^FDPedido:{pedido}^FS\n"
+            y_pos += int(f_ref * 1.2)
         
-        # Código de barras: EAN-13 quando 13 dígitos, Code 128 caso contrário
-        # CRÍTICO: usar codigo_barras/ean (7890000005098), NUNCA codigo (1420)!
+        # Código de barras (altura proporcional ao DPI)
         if codigo_barras:
             if len(codigo_barras) == 13 and codigo_barras.isdigit():
-                # EAN-13 - mesmo formato que sistema antigo (imprime número abaixo)
-                zpl += f"^FO{margin},{y_pos}^BY1^BEN,24,Y,N^FD{codigo_barras}^FS\n"
+                zpl += f"^FO{margin},{y_pos}^BY2^BEN,{f_barcode},Y,N^FD{codigo_barras}^FS\n"
             else:
-                # Code 128 - compatível com todas as impressoras Zebra
-                zpl += f"^FO{margin},{y_pos}^BY1^BCN,24,Y,N,N^FD{codigo_barras}^FS\n"
-            y_pos += 34
+                zpl += f"^FO{margin},{y_pos}^BY2^BCN,{f_barcode},Y,N,N^FD{codigo_barras}^FS\n"
+            y_pos += int(f_barcode * 1.4)
         
         # Lote e Validade (opcional)
         if lote or validade:
@@ -103,9 +115,8 @@ class ZPLGenerator:
                 linha_extra.append(f"Lote:{lote[:8]}")
             if validade:
                 linha_extra.append(f"Val:{validade[:10]}")
-            zpl += f"^FO{margin},{y_pos}^A0N,10,10^FD{' '.join(linha_extra)}^FS\n"
+            zpl += f"^FO{margin},{y_pos}^A0N,{f_lote},{f_lote}^FD{' '.join(linha_extra)}^FS\n"
         
-        # Fim do comando
         zpl += "^XZ"
         
         return zpl.strip()
