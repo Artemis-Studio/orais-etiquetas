@@ -9,7 +9,7 @@ printer:
   retry_attempts: 3  # Número de tentativas em caso de falha
   # === CALIBRAÇÃO (2 colunas 50x25mm) - ajuste conforme a régua ===
   # DPI: use 203 para ZDesigner/GC420t (padrão) ou 300 se sua impressora for 300dpi
-  label_dpi: 203
+  label_dpi: 300
 
   # Margem esquerda (mm): desloca início para evitar corte no vão.
   # Se texto ESQ cortado (ex: "20.1040-20"), AUMENTE (6-8).
