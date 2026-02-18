@@ -9,9 +9,9 @@ printer:
   retry_attempts: 3  # Número de tentativas em caso de falha
   # DPI da impressora: 203 ou 300 (ZDesigner GC420t pode ser ambos)
   # Se a etiqueta ficar grande demais, use 203
-  label_dpi: 203 
+  label_dpi: 300
   # Margem extra (mm) à direita - aumenta se etiqueta direita cortar
-  label_margin_right: 8
+  label_margin_right: 0
 
 queue:
   check_interval: 30  # Intervalo em segundos para verificar a fila
