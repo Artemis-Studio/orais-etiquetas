@@ -77,7 +77,8 @@ class ZPLGenerator:
         margin_right = int(margin_right_mm * dots_per_mm)
         gap_dots = int(gap_mm * dots_per_mm)
         total_width = margin_left + label_width + gap_dots + label_width + margin_right
-        margin = max(5, int(8 * dots_per_mm / 8))
+        # Margem interna igual à calibração: ~1,5mm (8-12 dots a 203dpi)
+        content_margin = max(8, int(1.5 * dots_per_mm))
         # Escala de fontes (base para 203 dpi, maior para 300 dpi)
         scale = dpi / 203
         f_desc = max(18, int(18 * scale))
@@ -90,8 +91,8 @@ class ZPLGenerator:
         # ^PW = largura total, ^LL = altura
         zpl = f"^XA\n^CI28\n^PQ1\n^LH{margin_left},{margin_top}^PW{total_width}^LL{label_height}\n"
         
-        # Conteúdo: x=0 agora é após margin_left (fora do vão)
-        y_pos = margin
+        # Conteúdo: mesma origem que calibração (^LH já aplicado)
+        y_pos = content_margin
         
         # Descrição: quebra em múltiplas linhas (max ~28 chars/linha, max 3 linhas)
         # Evita truncar - nomes longos como "JG DENTE ENDO 21 AO 27 RADIO ETC ETC" quebram corretamente
@@ -102,7 +103,7 @@ class ZPLGenerator:
             linhas_desc = self._wrap_text(desc_completa, max_chars_linha)[:max_linhas_desc]
             for linha in linhas_desc:
                 if linha.strip():  # evita linha vazia
-                    zpl += f"^FO{margin},{y_pos}^A0N,{f_desc},{f_desc}^FD{linha}^FS\n"
+                    zpl += f"^FO{content_margin},{y_pos}^A0N,{f_desc},{f_desc}^FD{linha}^FS\n"
                     y_pos += int(f_desc * 1.2)
         
         # REF e Pedido na mesma linha - AMBOS na coluna esquerda (evitar que Pedido vá para direita)
@@ -110,10 +111,10 @@ class ZPLGenerator:
         ref_pedido_x_offset = int(130 * scale)  # espaço entre REF e Pedido
         if ref or pedido:
             if ref:
-                zpl += f"^FO{margin},{y_pos}^A0N,{f_ref},{f_ref}^FDREF:{ref}^FS\n"
+                zpl += f"^FO{content_margin},{y_pos}^A0N,{f_ref},{f_ref}^FDREF:{ref}^FS\n"
             if pedido:
-                # Pedido à direita do REF, mas sempre na coluna esquerda (x < label_width - margem)
-                x_pedido = margin + ref_pedido_x_offset
+                # Pedido à direita do REF, mas sempre na coluna esquerda (x < label_width)
+                x_pedido = content_margin + ref_pedido_x_offset
                 zpl += f"^FO{x_pedido},{y_pos}^A0N,{f_ref},{f_ref}^FDPedido:{pedido[:12]}^FS\n"
             y_pos += int(f_ref * 1.2)
         
@@ -137,7 +138,7 @@ class ZPLGenerator:
             texto_lote_val = ' '.join(linha_extra)
             # ~0.7 dots por ponto de fonte por caractere (fonte Zebra 0)
             texto_width_est = int(len(texto_lote_val) * f_lote * 0.7)
-            x_lote = max(margin, (label_width - texto_width_est) // 2)
+            x_lote = max(content_margin, (label_width - texto_width_est) // 2)
             zpl += f"^FO{x_lote},{y_pos}^A0N,{f_lote},{f_lote}^FD{texto_lote_val}^FS\n"
         
         zpl += "^XZ"
