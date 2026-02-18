@@ -19,7 +19,7 @@ printer:
   label_margin_top: 2
 
   # Margem direita (mm): espaço após a coluna direita.
-  label_margin_right: 6
+  label_margin_right: 8
 
   # Largura por etiqueta (mm): meça na régua da calibração.
   label_width_mm: 50
