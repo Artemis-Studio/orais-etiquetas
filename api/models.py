@@ -9,7 +9,8 @@ class PrintRequest(BaseModel):
     data: Dict[str, Any] = Field(..., description="Dados da etiqueta")
     printer_name: Optional[str] = Field(None, description="Nome da impressora (opcional)")
     zpl_template: Optional[str] = Field(None, description="Template ZPL customizado (opcional)")
-    duas_colunas: bool = Field(default=False, description="Imprimir nas 2 colunas (mesma etiqueta ESQ+DIR)")
+    duas_colunas: bool = Field(default=False, description="Imprimir nas 2 colunas")
+    data_col2: Optional[Dict[str, Any]] = Field(None, description="Dados da coluna direita (se vazio, usa data em ambas)")
 
 
 class PrintResponse(BaseModel):

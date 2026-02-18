@@ -204,9 +204,25 @@ def test_printer(ctx, printer):
 @click.option('--validade', default=None,
               help='Data de validade')
 @click.option('--duas-colunas', is_flag=True,
-              help='Imprimir nas 2 colunas (mesma etiqueta ESQ+DIR)')
+              help='Imprimir nas 2 colunas (ESQ+DIR). Use opções -col2 para dados da coluna direita.')
+@click.option('--codigo-col2', '-c2', default=None,
+              help='Código coluna direita (com --duas-colunas)')
+@click.option('--descricao-col2', '-d2', default=None,
+              help='Descrição coluna direita')
+@click.option('--descricao2-col2', default=None,
+              help='Descrição secundária coluna direita')
+@click.option('--ref-col2', default=None,
+              help='REF coluna direita')
+@click.option('--pedido-col2', default=None,
+              help='Pedido coluna direita')
+@click.option('--codigo-barras-col2', default=None,
+              help='Código de barras coluna direita')
+@click.option('--lote-col2', default=None,
+              help='Lote coluna direita')
+@click.option('--validade-col2', default=None,
+              help='Validade coluna direita')
 @click.pass_context
-def print_label(ctx, printer, codigo, descricao, descricao2, ref, pedido, quantidade, preco, codigo_barras, lote, validade, duas_colunas):
+def print_label(ctx, printer, codigo, descricao, descricao2, ref, pedido, quantidade, preco, codigo_barras, lote, validade, duas_colunas, codigo_col2, descricao_col2, descricao2_col2, ref_col2, pedido_col2, codigo_barras_col2, lote_col2, validade_col2):
     """Imprime uma etiqueta diretamente (sem usar API)."""
     click.echo("[IMPRESSORA] Preparando impressao...\n")
     
@@ -241,10 +257,30 @@ def print_label(ctx, printer, codigo, descricao, descricao2, ref, pedido, quanti
         if validade:
             data["validade"] = validade
         
+        # Dados coluna direita (quando --duas-colunas e params -col2)
+        data_col2 = None
+        if duas_colunas and (codigo_col2 or descricao_col2):
+            data_col2 = {
+                "codigo": codigo_col2 or codigo,
+                "descricao": descricao_col2 or descricao,
+            }
+            if descricao2_col2 is not None:
+                data_col2["descricao2"] = descricao2_col2
+            if ref_col2 is not None:
+                data_col2["ref"] = ref_col2
+            if pedido_col2 is not None:
+                data_col2["pedido"] = pedido_col2
+            if codigo_barras_col2 is not None:
+                data_col2["codigo_barras"] = codigo_barras_col2
+            if lote_col2 is not None:
+                data_col2["lote"] = lote_col2
+            if validade_col2 is not None:
+                data_col2["validade"] = validade_col2
+        
         # Gera ZPL
         zpl_generator = ZPLGenerator()
         if duas_colunas:
-            zpl = zpl_generator.generate_dual_column_test_label(data)
+            zpl = zpl_generator.generate_dual_column_label(data, data_col2)
         else:
             zpl = zpl_generator.generate_product_label(data)
         
@@ -269,7 +305,10 @@ def print_label(ctx, printer, codigo, descricao, descricao2, ref, pedido, quanti
             click.echo(f"   Validade: {validade}")
         click.echo(f"\n[IMPRESSORA] Impressora: {printer_name}")
         if duas_colunas:
-            click.echo("[MODO] Duas colunas (ESQ + DIR)")
+            if data_col2 and data_col2 != data:
+                click.echo("[MODO] Duas colunas - ESQ e DIR com dados diferentes")
+            else:
+                click.echo("[MODO] Duas colunas (mesmo conteúdo ESQ + DIR)")
         click.echo("[ENVIANDO] Enviando para impressao...")
         
         # Imprime
@@ -435,9 +474,17 @@ def process_queue(ctx):
 @click.option('--printer', '-p', default=None,
               help='Nome da impressora')
 @click.option('--duas-colunas', is_flag=True,
-              help='Imprimir nas 2 colunas (mesma etiqueta ESQ+DIR)')
+              help='Imprimir nas 2 colunas. Use --*-col2 para dados da coluna direita.')
+@click.option('--codigo-col2', '-c2', default=None, help='Código coluna direita')
+@click.option('--descricao-col2', '-d2', default=None, help='Descrição coluna direita')
+@click.option('--descricao2-col2', default=None, help='Descrição2 coluna direita')
+@click.option('--ref-col2', default=None, help='REF coluna direita')
+@click.option('--pedido-col2', default=None, help='Pedido coluna direita')
+@click.option('--codigo-barras-col2', default=None, help='Código de barras coluna direita')
+@click.option('--lote-col2', default=None, help='Lote coluna direita')
+@click.option('--validade-col2', default=None, help='Validade coluna direita')
 @click.pass_context
-def print_via_api(ctx, codigo, descricao, descricao2, ref, pedido, quantidade, preco, codigo_barras, lote, validade, printer, duas_colunas):
+def print_via_api(ctx, codigo, descricao, descricao2, ref, pedido, quantidade, preco, codigo_barras, lote, validade, printer, duas_colunas, codigo_col2, descricao_col2, descricao2_col2, ref_col2, pedido_col2, codigo_barras_col2, lote_col2, validade_col2):
     """Imprime uma etiqueta via API."""
     click.echo("[ENVIANDO] Enviando requisicao de impressao via API...\n")
     
@@ -473,6 +520,23 @@ def print_via_api(ctx, codigo, descricao, descricao2, ref, pedido, quantidade, p
             data["printer_name"] = printer
         if duas_colunas:
             data["duas_colunas"] = True
+        if duas_colunas and (codigo_col2 or descricao_col2):
+            data["data_col2"] = {
+                "codigo": codigo_col2 or codigo,
+                "descricao": descricao_col2 or descricao,
+            }
+            if descricao2_col2 is not None:
+                data["data_col2"]["descricao2"] = descricao2_col2
+            if ref_col2 is not None:
+                data["data_col2"]["ref"] = ref_col2
+            if pedido_col2 is not None:
+                data["data_col2"]["pedido"] = pedido_col2
+            if codigo_barras_col2 is not None:
+                data["data_col2"]["codigo_barras"] = codigo_barras_col2
+            if lote_col2 is not None:
+                data["data_col2"]["lote"] = lote_col2
+            if validade_col2 is not None:
+                data["data_col2"]["validade"] = validade_col2
         
         click.echo(f"[DADOS] Dados:")
         click.echo(f"   Código: {codigo}")
