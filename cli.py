@@ -74,6 +74,40 @@ def list_printers(ctx):
 
 
 @cli.command()
+@click.option('--printer', '-p', default=None,
+              help='Nome da impressora')
+@click.option('--duas-colunas/--uma-coluna', default=True,
+              help='Imprimir nas duas colunas ou só esquerda')
+@click.pass_context
+def calibrar(ctx, printer, duas_colunas):
+    """Imprime etiqueta de calibração com marcações (bordas, mm) para validar tamanho real."""
+    click.echo("[CALIBRAÇÃO] Gerando etiqueta com marcações de medição...\n")
+    try:
+        printer_manager = PrinterManager()
+        printer_name = printer_manager.get_printer_name(printer)
+        if not printer_name:
+            click.echo("[ERRO] Nenhuma impressora disponivel.")
+            sys.exit(1)
+        click.echo(f"[IMPRESSORA] {printer_name}")
+        click.echo("[MARCAÇÕES] Bordas, réguas 10mm, cantos, ESQ/DIR")
+        click.echo("[ENVIANDO] Imprima e MEÇA com régua para relatar:")
+        click.echo("   - Os números batem com os mm reais?")
+        click.echo("   - A borda encosta nas bordas da etiqueta?")
+        click.echo("   - A coluna DIR aparece completa?\n")
+        zpl_generator = ZPLGenerator()
+        zpl = zpl_generator.generate_calibration_label(dual_column=duas_colunas)
+        success = printer_manager.print_zpl(zpl, printer_name)
+        if success:
+            click.echo("[OK] Meça e descreva o resultado para ajustarmos.")
+        else:
+            click.echo("[ERRO] Falha ao enviar impressao.")
+            sys.exit(1)
+    except Exception as e:
+        click.echo(f"[ERRO] {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command()
 @click.option('--printer', '-p', default=None, 
               help='Nome da impressora (deixe vazio para usar padrão)')
 @click.pass_context

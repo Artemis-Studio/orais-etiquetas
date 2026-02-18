@@ -141,6 +141,78 @@ class ZPLGenerator:
         
         return zpl.strip()
     
+    def generate_calibration_label(self, dual_column: bool = True) -> str:
+        """Gera etiqueta de calibração com marcações para validar tamanho real.
+        
+        Inclui: bordas, réguas em mm, cantos marcados, identificação ESQ/DIR.
+        Use para medir e relatar o que aparece impresso.
+        
+        Args:
+            dual_column: True = duas colunas, False = apenas esquerda
+            
+        Returns:
+            String ZPL de calibração
+        """
+        try:
+            dpi = get_config().get_label_dpi()
+        except Exception:
+            dpi = 300
+        dots_per_mm = dpi / 25.4
+        label_width = int(50 * dots_per_mm)
+        label_height = int(25 * dots_per_mm)
+        try:
+            margin_right = int(get_config().get_label_margin_right() * dots_per_mm)
+        except Exception:
+            margin_right = int(8 * dots_per_mm)
+        total_width = label_width * 2 + margin_right if dual_column else label_width
+        t = 2  # espessura das linhas (dots)
+        
+        zpl = f"^XA\n^CI28\n^PQ1\n^PW{total_width}^LL{label_height}^LH0,0\n"
+        
+        # Borda externa - esquerda (0 a label_width)
+        zpl += f"^FO0,0^GB{label_width},{t},{t}^FS\n"      # topo
+        zpl += f"^FO0,{label_height-t}^GB{label_width},{t},{t}^FS\n"  # base
+        zpl += f"^FO0,0^GB{t},{label_height},{t}^FS\n"     # esquerda
+        zpl += f"^FO{label_width-t},0^GB{t},{label_height},{t}^FS\n"  # direita col1
+        
+        # Marcações a cada 10mm na horizontal - ticks verticais (esquerda)
+        for mm in range(10, 50, 10):
+            x = int(mm * dots_per_mm)
+            zpl += f"^FO{x},0^GB{t},6,{t}^FS\n"  # tick superior
+            zpl += f"^FO{x},{label_height-6}^GB{t},6,{t}^FS\n"  # tick inferior
+            zpl += f"^FO{x-5},{label_height-16}^A0N,10,10^FD{mm}^FS\n"  # número
+        
+        # Marcações a cada 5mm na vertical - ticks horizontais (esquerda)
+        for mm in range(5, 25, 5):
+            y = int(mm * dots_per_mm)
+            zpl += f"^FO0,{y}^GB6,{t},{t}^FS\n"  # tick esquerdo
+            zpl += f"^FO{label_width-6},{y}^GB6,{t},{t}^FS\n"  # tick direito
+            zpl += f"^FO2,{y-5}^A0N,10,10^FD{mm}^FS\n"  # número
+        
+        # Identificação e referência
+        zpl += f"^FO{label_width//2 - 45},2^A0N,14,14^FD[ESQ] 50x25mm 300dpi^FS\n"
+        zpl += f"^FO2,{label_height//2 - 6}^A0N,10,10^FD0mm^FS\n"
+        zpl += f"^FO{label_width-35},{label_height//2 - 6}^A0N,10,10^FD50mm^FS\n"
+        zpl += f"^FO2,{label_height-14}^A0N,8,8^FD10,20,30,40=mm^FS\n"
+        
+        if dual_column:
+            # Borda coluna direita
+            x_dir = label_width
+            zpl += f"^FO{x_dir},0^GB{label_width},{t},{t}^FS\n"
+            zpl += f"^FO{x_dir},{label_height-t}^GB{label_width},{t},{t}^FS\n"
+            zpl += f"^FO{x_dir},0^GB{t},{label_height},{t}^FS\n"
+            zpl += f"^FO{x_dir + label_width - t},0^GB{t},{label_height},{t}^FS\n"
+            # Marcações 10mm na coluna direita
+            for mm in range(10, 50, 10):
+                x = x_dir + int(mm * dots_per_mm)
+                zpl += f"^FO{x},0^GB{t},8,{t}^FS\n"
+                zpl += f"^FO{x},{label_height-8}^GB{t},8,{t}^FS\n"
+                zpl += f"^FO{x-4},{label_height-18}^A0N,12,12^FD{mm}^FS\n"
+            zpl += f"^FO{x_dir + label_width//2 - 30},5^A0N,18,18^FD[DIR 50x25mm]^FS\n"
+        
+        zpl += "^XZ"
+        return zpl.strip()
+    
     def generate_dual_column_test_label(self, data: Optional[Dict] = None) -> str:
         """Gera ZPL para testar as duas colunas - mesmo conteúdo em esquerda e direita.
         
