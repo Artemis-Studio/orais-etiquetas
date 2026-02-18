@@ -11,15 +11,18 @@ printer:
   # DPI: use 203 para ZDesigner/GC420t (padrão) ou 300 se sua impressora for 300dpi
   label_dpi: 203
 
-  # Margem esquerda (mm): desloca início para evitar corte no vão.
-  # Se texto ESQ cortado (ex: "20.1040-20"), AUMENTE (6-8).
-  label_margin_left: 4
+  # Margem esquerda (mm): espaço à esquerda da coluna ESQ.
+  # Se use_symmetric_margins: true, ignora e usa margin_right.
+  label_margin_left: 8
+
+  # Margem direita (mm): espaço à direita da coluna DIR (padrão para ambas).
+  label_margin_right: 8
+
+  # true = usa margin_right para ESQ e DIR (padrão simétrico, divisão central igual).
+  use_symmetric_margins: true
 
   # Margem superior (mm): evita conteúdo colado no topo.
   label_margin_top: 2
-
-  # Margem direita (mm): espaço após a coluna direita.
-  label_margin_right: 8
 
   # Largura por etiqueta (mm): meça na régua da calibração.
   label_width_mm: 50

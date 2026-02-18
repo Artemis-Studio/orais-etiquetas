@@ -84,16 +84,18 @@ class Config:
         return self.get('printer.label_dpi', 300)
     
     def get_label_margin_left(self) -> int:
-        """Retorna margem esquerda em mm (evita corte no vão)."""
-        return self.get('printer.label_margin_left', 3)
+        """Retorna margem esquerda em mm."""
+        if self.get('printer.use_symmetric_margins', True):
+            return self.get_label_margin_right()
+        return self.get('printer.label_margin_left', 8)
 
     def get_label_margin_top(self) -> int:
         """Retorna margem superior em mm (evita conteúdo no topo)."""
         return self.get('printer.label_margin_top', 0)
     
     def get_label_margin_right(self) -> int:
-        """Retorna margem direita em mm (borda DIR chegar no final)."""
-        return self.get('printer.label_margin_right', 10)
+        """Retorna margem direita em mm (usada como padrão se symmetric_margins)."""
+        return self.get('printer.label_margin_right', 8)
     
     def get_label_width_mm(self) -> int:
         """Retorna largura real da etiqueta em mm (45 se régua mostrar menor)."""
