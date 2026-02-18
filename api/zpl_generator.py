@@ -94,12 +94,16 @@ class ZPLGenerator:
             zpl += f"^FO{margin},{y_pos}^A0N,{f_desc2},{f_desc2}^FD{descricao2}^FS\n"
             y_pos += int(f_desc2 * 1.2)
         
-        # REF e Pedido na mesma linha
+        # REF e Pedido na mesma linha - AMBOS na coluna esquerda (evitar que Pedido vá para direita)
+        # REF à esquerda, Pedido logo após (mantém tudo dentro da etiqueta da esquerda)
+        ref_pedido_x_offset = int(130 * scale)  # espaço entre REF e Pedido
         if ref or pedido:
             if ref:
                 zpl += f"^FO{margin},{y_pos}^A0N,{f_ref},{f_ref}^FDREF:{ref}^FS\n"
             if pedido:
-                zpl += f"^FO{label_width - int(90 * scale)},{y_pos}^A0N,{f_ref},{f_ref}^FDPedido:{pedido}^FS\n"
+                # Pedido à direita do REF, mas sempre na coluna esquerda (x < label_width - margem)
+                x_pedido = margin + ref_pedido_x_offset
+                zpl += f"^FO{x_pedido},{y_pos}^A0N,{f_ref},{f_ref}^FDPedido:{pedido[:12]}^FS\n"
             y_pos += int(f_ref * 1.2)
         
         # Código de barras (altura proporcional ao DPI)
