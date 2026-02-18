@@ -128,15 +128,16 @@ class ZPLGenerator:
             if validade:
                 partes.append(f"Val:{validade[:8]}")
             zpl += f"^FO{x_right},{y_grid}^A0N,{f_lote},{f_lote}^FD{'  '.join(partes)}^FS\n"
-        y_pos = y_grid + int(f_ref * line_spacing)
-        y_pos += int(3 * dots_per_mm)
 
-        # 3. CÓDIGO DE BARRAS (ocupa área das 2 colunas, último)
+        # 3. CÓDIGO DE BARRAS (sempre fixo na parte de baixo - independente do conteúdo acima)
+        barcode_area_height = int(9 * dots_per_mm)  # ~9mm reservado
+        bottom_margin = int(1 * dots_per_mm)
+        y_barcode = label_height - barcode_area_height - bottom_margin
         if codigo_barras:
             if len(codigo_barras) == 13 and codigo_barras.isdigit():
-                zpl += f"^FO{x_left},{y_pos}^BY2^BEN,{f_barcode},Y,N^FD{codigo_barras}^FS\n"
+                zpl += f"^FO{x_left},{y_barcode}^BY2^BEN,{f_barcode},Y,N^FD{codigo_barras}^FS\n"
             else:
-                zpl += f"^FO{x_left},{y_pos}^BY2^BCN,{f_barcode},Y,N,N^FD{codigo_barras}^FS\n"
+                zpl += f"^FO{x_left},{y_barcode}^BY2^BCN,{f_barcode},Y,N,N^FD{codigo_barras}^FS\n"
         
         zpl += "^XZ"
         
