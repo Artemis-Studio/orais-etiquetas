@@ -63,15 +63,17 @@ class ZPLGenerator:
             label_width_mm = cfg.get_label_width_mm()
             label_height_mm = cfg.get_label_height_mm()
             margin_left_mm = cfg.get_label_margin_left()
+            margin_top_mm = cfg.get_label_margin_top()
             margin_right_mm = cfg.get_label_margin_right()
             gap_mm = cfg.get_gap_between_columns_mm()
         except Exception:
             dpi, label_width_mm, label_height_mm = 203, 50, 25
-            margin_left_mm, margin_right_mm, gap_mm = 4, 8, 1
+            margin_left_mm, margin_top_mm, margin_right_mm, gap_mm = 4, 2, 8, 1
         dots_per_mm = dpi / 25.4
         label_width = int(label_width_mm * dots_per_mm)
         label_height = int(label_height_mm * dots_per_mm)
         margin_left = int(margin_left_mm * dots_per_mm)
+        margin_top = int(margin_top_mm * dots_per_mm)
         margin_right = int(margin_right_mm * dots_per_mm)
         gap_dots = int(gap_mm * dots_per_mm)
         total_width = margin_left + label_width + gap_dots + label_width + margin_right
@@ -84,10 +86,9 @@ class ZPLGenerator:
         f_barcode = max(28, int(36 * scale))
         f_lote = max(12, int(12 * scale))
         
-        # ^LH = desloca origem à direita (evita borda no vão)
-        # ^PW = largura total
-        # ^PQ1 = 1 cópia
-        zpl = f"^XA\n^CI28\n^PQ1\n^LH{margin_left},0^PW{total_width}^LL{label_height}\n"
+        # ^LH = desloca origem (x=margin_left evita vão, y=margin_top evita topo)
+        # ^PW = largura total, ^LL = altura
+        zpl = f"^XA\n^CI28\n^PQ1\n^LH{margin_left},{margin_top}^PW{total_width}^LL{label_height}\n"
         
         # Conteúdo: x=0 agora é após margin_left (fora do vão)
         y_pos = margin
@@ -153,15 +154,17 @@ class ZPLGenerator:
             label_width_mm = cfg.get_label_width_mm()
             label_height_mm = cfg.get_label_height_mm()
             margin_left_mm = cfg.get_label_margin_left()
+            margin_top_mm = cfg.get_label_margin_top()
             margin_right_mm = cfg.get_label_margin_right()
             gap_mm = cfg.get_gap_between_columns_mm()
         except Exception:
             dpi, label_width_mm, label_height_mm = 203, 50, 25
-            margin_left_mm, margin_right_mm, gap_mm = 4, 8, 1
+            margin_left_mm, margin_top_mm, margin_right_mm, gap_mm = 4, 2, 8, 1
         dots_per_mm = dpi / 25.4
         label_width = int(label_width_mm * dots_per_mm)
         label_height = int(label_height_mm * dots_per_mm)
         margin_left = int(margin_left_mm * dots_per_mm)
+        margin_top = int(margin_top_mm * dots_per_mm)
         margin_right = int(margin_right_mm * dots_per_mm)
         gap_dots = int(gap_mm * dots_per_mm)
         if dual_column:
@@ -173,7 +176,7 @@ class ZPLGenerator:
         f_tit = 24   # títulos [ESQ]/[DIR]
         f_ref = 22   # 0mm, 50mm, etc.
         # ^MD20 = densidade alta, ^LS0 = sem deslocamento
-        zpl = f"^XA\n^CI28\n^PQ1\n^MD20\n^LS0\n^LT0\n^LH{margin_left},0^PW{total_width}^LL{label_height}\n"
+        zpl = f"^XA\n^CI28\n^PQ1\n^MD20\n^LS0\n^LT0\n^LH{margin_left},{margin_top}^PW{total_width}^LL{label_height}\n"
         
         # === COLUNA ESQUERDA: retângulo completo (^GB w,h,t = largura, altura, espessura borda) ===
         # ^GB desenha as 4 bordas de uma vez - mais confiável que 4 linhas separadas

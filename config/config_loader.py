@@ -86,6 +86,10 @@ class Config:
     def get_label_margin_left(self) -> int:
         """Retorna margem esquerda em mm (evita corte no vão)."""
         return self.get('printer.label_margin_left', 3)
+
+    def get_label_margin_top(self) -> int:
+        """Retorna margem superior em mm (evita conteúdo no topo)."""
+        return self.get('printer.label_margin_top', 0)
     
     def get_label_margin_right(self) -> int:
         """Retorna margem direita em mm (borda DIR chegar no final)."""
