@@ -163,15 +163,12 @@ class ZPLGenerator:
         f_num = 32   # números da régua - máximo legibilidade (antes 28)
         f_tit = 24   # títulos [ESQ]/[DIR]
         f_ref = 22   # 0mm, 50mm, etc.
-        # ^MD20 = densidade alta (0-30) para números não ficarem fracos na base
-        zpl = f"^XA\n^CI28\n^PQ1\n^MD20\n^LS0\n^LH{margin_left},0^PW{total_width}^LL{label_height}\n"
+        # ^MD20 = densidade alta, ^LS0 = sem deslocamento
+        zpl = f"^XA\n^CI28\n^PQ1\n^MD20\n^LS0\n^LT0\n^LH{margin_left},0^PW{total_width}^LL{label_height}\n"
         
-        # === COLUNA ESQUERDA: esquerda, topo, base. Direita = divisória compartilhada ===
-        zpl += f"^FO0,0^GB{label_width},{t},{t}^FS\n"
-        zpl += f"^FO0,{label_height-t}^GB{label_width},{t},{t}^FS\n"
-        zpl += f"^FO0,0^GB{t},{label_height},{t}^FS\n"
-        # Divisa col1|col2: UMA linha só (evita risco grosso cortando números)
-        zpl += f"^FO{label_width-t},0^GB{t},{label_height},{t}^FS\n"
+        # === COLUNA ESQUERDA: retângulo completo (^GB w,h,t = largura, altura, espessura borda) ===
+        # ^GB desenha as 4 bordas de uma vez - mais confiável que 4 linhas separadas
+        zpl += f"^FO0,0^GB{label_width},{label_height},{t}^FS\n"
         
         # Números horizontal (10,20,30,40mm) - na base, fonte grande
         for mm in range(10, min(50, label_width_mm), 10):
@@ -193,10 +190,8 @@ class ZPLGenerator:
         
         if dual_column:
             x_dir = label_width
-            zpl += f"^FO{x_dir},0^GB{label_width},{t},{t}^FS\n"
-            zpl += f"^FO{x_dir},{label_height-t}^GB{label_width},{t},{t}^FS\n"
-            # Não desenha borda esquerda col2 (já existe borda direita col1 em label_width-t)
-            zpl += f"^FO{x_dir + label_width - t},0^GB{t},{label_height},{t}^FS\n"
+            # COLUNA DIREITA: retângulo completo (4 bordas em um ^GB)
+            zpl += f"^FO{x_dir},0^GB{label_width},{label_height},{t}^FS\n"
             for mm in range(10, min(50, label_width_mm), 10):
                 x = x_dir + int(mm * dots_per_mm)
                 x_num = max(x_dir, x - 14)
