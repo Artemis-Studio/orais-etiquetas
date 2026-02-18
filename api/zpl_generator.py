@@ -1,4 +1,6 @@
-"""Gerador de comandos ZPL para etiquetas."""
+"""Gerador de comandos ZPL para etiquetas.
+Compatível com layout do Sistema de Etiquetas v07.2 (50x25mm, 2 colunas).
+"""
 from typing import Dict, Optional
 
 
@@ -31,70 +33,76 @@ class ZPLGenerator:
         Args:
             data: Dicionário com dados do produto:
                 - codigo: Código do produto (usado como REF se ref não fornecido)
-                - descricao: Descrição principal do produto (primeira linha)
-                - descricao2: Descrição secundária (segunda linha, opcional)
-                - ref: Referência do produto (opcional, usa codigo se não fornecido)
-                - pedido: Número do pedido (opcional)
-                - codigo_barras: Código de barras (opcional, usa codigo se não fornecido)
+                - descricao: Descrição principal (ex: JG DENTE ENDO 21 AO 27 RADIO)
+                - descricao2: Descrição secundária (ex: PACOS)
+                - ref: Referência do produto
+                - pedido: Número do pedido
+                - codigo_barras ou ean: EAN-13 (13 dígitos, ex: 7890000005098) - OBRIGATÓRIO para código de barras
                 - lote: Número do lote (opcional)
                 - validade: Data de validade (opcional)
-                - quantidade: Quantidade (opcional, mantido para compatibilidade)
-                - preco: Preço (opcional, mantido para compatibilidade)
         
         Returns:
             String com comando ZPL completo
         """
-        # Extrai dados e escapa caracteres especiais
+        # Extrai dados - compatível com Sistema v07.2 (ean) e API (codigo_barras)
         codigo = self._escape_zpl(str(data.get('codigo', '')))
         descricao = self._escape_zpl(str(data.get('descricao', '')))
         descricao2 = self._escape_zpl(str(data.get('descricao2', '')))
-        ref = self._escape_zpl(str(data.get('ref', codigo)))  # Usa codigo se ref não fornecido
+        ref = self._escape_zpl(str(data.get('ref', codigo)))
         pedido = self._escape_zpl(str(data.get('pedido', '')))
-        codigo_barras = str(data.get('codigo_barras', codigo))  # Código de barras não precisa escape
+        # IMPORTANTE: Usar codigo_barras ou ean (EAN-13). NUNCA usar codigo (ex: 1420) no código de barras!
+        codigo_barras = str(data.get('codigo_barras') or data.get('ean') or '').strip()
         lote = self._escape_zpl(str(data.get('lote', '')))
         validade = self._escape_zpl(str(data.get('validade', '')))
         
-        # Dimensões da etiqueta: 50mm x 25mm, 2 colunas (203 dpi: ~8 pontos/mm)
+        # Dimensões da etiqueta: 50mm x 25mm, 2 colunas no rolo (203 dpi: ~8 pontos/mm)
         width_dots = 400   # 50mm
         height_dots = 200  # 25mm
         margin = 5
         
-        # Inicia comando ZPL com tamanho da etiqueta (^PW = largura, ^LL = comprimento)
-        zpl = f"^XA\n^PW{width_dots}^LL{height_dots}^LH0,0\n"
+        # Inicia ZPL - ^CI28 para UTF-8 (caracteres acentuados corretos, ex: DENTE ENDO)
+        zpl = f"^XA\n^CI28\n^PW{width_dots}^LL{height_dots}^LH0,0\n"
         
-        # Layout compacto para caber em 25mm de altura
+        # Layout igual ao sistema antigo: descricao, descricao2, REF|Pedido, código de barras
         y_pos = margin
-        # Primeira linha: Descrição principal (fonte menor)
+        
+        # Primeira linha: Descrição principal
         if descricao:
             desc_linha1 = descricao[:28] if len(descricao) > 28 else descricao
             zpl += f"^FO{margin},{y_pos}^A0N,14,14^FD{desc_linha1}^FS\n"
             y_pos += 16
         
-        # Segunda linha: Descrição secundária
+        # Segunda linha: Descrição secundária (ex: PACOS)
         if descricao2:
             zpl += f"^FO{margin},{y_pos}^A0N,12,12^FD{descricao2}^FS\n"
             y_pos += 14
         
-        # REF e Pedido na mesma linha (fonte pequena)
+        # REF e Pedido na mesma linha (duas colunas, como no sistema antigo)
         if ref or pedido:
             if ref:
                 zpl += f"^FO{margin},{y_pos}^A0N,11,11^FDREF:{ref}^FS\n"
             if pedido:
-                zpl += f"^FO{width_dots - 120},{y_pos}^A0N,11,11^FDPed:{pedido}^FS\n"
+                zpl += f"^FO{width_dots - 120},{y_pos}^A0N,11,11^FDPedido:{pedido}^FS\n"
             y_pos += 13
         
-        # Código de barras (Code 128) compacto
+        # Código de barras: EAN-13 quando 13 dígitos, Code 128 caso contrário
+        # CRÍTICO: usar codigo_barras/ean (7890000005098), NUNCA codigo (1420)!
         if codigo_barras:
-            zpl += f"^FO{margin},{y_pos}^BY1^BCN,28,Y,N,N^FD{codigo_barras}^FS\n"
-            y_pos += 38
+            if len(codigo_barras) == 13 and codigo_barras.isdigit():
+                # EAN-13 - mesmo formato que sistema antigo (imprime número abaixo)
+                zpl += f"^FO{margin},{y_pos}^BY1^BEN,24,Y,N^FD{codigo_barras}^FS\n"
+            else:
+                # Code 128 - compatível com todas as impressoras Zebra
+                zpl += f"^FO{margin},{y_pos}^BY1^BCN,24,Y,N,N^FD{codigo_barras}^FS\n"
+            y_pos += 34
         
-        # Lote e Validade numa linha (fonte pequena)
+        # Lote e Validade (opcional)
         if lote or validade:
             linha_extra = []
             if lote:
-                linha_extra.append(f"Lote:{lote}")
+                linha_extra.append(f"Lote:{lote[:8]}")
             if validade:
-                linha_extra.append(f"Val:{validade}")
+                linha_extra.append(f"Val:{validade[:10]}")
             zpl += f"^FO{margin},{y_pos}^A0N,10,10^FD{' '.join(linha_extra)}^FS\n"
         
         # Fim do comando
