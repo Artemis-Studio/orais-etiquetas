@@ -93,57 +93,50 @@ class ZPLGenerator:
         # ^PW = largura total, ^LL = altura
         zpl = f"^XA\n^CI28\n^PQ1\n^LH{margin_left},{margin_top}^PW{total_width}^LL{label_height}\n"
         
-        # Conteúdo: mesma origem que calibração (^LH já aplicado)
+        # Layout: tudo alinhado à esquerda (evita problema de calibração no centro)
+        # Ordem: Descrição → REF | Pedido → Lote | Val → Código de barras (último)
         y_pos = content_margin
-        
-        # Layout padrão: Descrição → REF/Pedido → Lote/Val → Código de barras (último, centralizado)
-        line_spacing = 1.15  # espaçamento entre seções
+        line_spacing = 1.2
+        x_left = content_margin  # posição fixa à esquerda - não depende de label_width
 
         # 1. Descrição
         desc_completa = f"{descricao} {descricao2}".strip() if (descricao or descricao2) else ""
         if desc_completa:
-            max_chars_linha = 24
-            max_linhas_desc = 3
-            linhas_desc = self._wrap_text(desc_completa, max_chars_linha)[:max_linhas_desc]
+            max_chars_linha = 22
+            linhas_desc = self._wrap_text(desc_completa, max_chars_linha)[:2]
             for linha in linhas_desc:
                 if linha.strip():
-                    zpl += f"^FO{content_margin},{y_pos}^A0N,{f_desc},{f_desc}^FD{linha}^FS\n"
+                    zpl += f"^FO{x_left},{y_pos}^A0N,{f_desc},{f_desc}^FD{linha}^FS\n"
                     y_pos += int(f_desc * line_spacing)
-            y_pos += int(f_desc * 0.3)  # espaço extra após descrição
+            y_pos += int(2 * dots_per_mm)
 
-        # 2. REF e Pedido (mesma linha)
-        ref_pedido_x_offset = int(130 * scale)
+        # 2. REF e Pedido (mesma linha, ambos à esquerda)
         if ref or pedido:
+            partes = []
             if ref:
-                zpl += f"^FO{content_margin},{y_pos}^A0N,{f_ref},{f_ref}^FDREF:{ref}^FS\n"
+                partes.append(f"REF:{ref[:10]}")
             if pedido:
-                x_pedido = content_margin + ref_pedido_x_offset
-                zpl += f"^FO{x_pedido},{y_pos}^A0N,{f_ref},{f_ref}^FDPedido:{pedido[:12]}^FS\n"
+                partes.append(f"Ped:{pedido[:10]}")
+            zpl += f"^FO{x_left},{y_pos}^A0N,{f_ref},{f_ref}^FD{'  '.join(partes)}^FS\n"
             y_pos += int(f_ref * line_spacing)
-            y_pos += int(f_ref * 0.3)  # espaço extra após REF/Pedido
 
-        # 3. Lote e Validade (centralizados, acima do código de barras)
+        # 3. Lote e Validade (mesma linha, alinhado à esquerda)
         if lote or validade:
-            linha_extra = []
+            partes = []
             if lote:
-                linha_extra.append(f"Lote:{lote[:8]}")
+                partes.append(f"Lote:{lote[:8]}")
             if validade:
-                linha_extra.append(f"Val:{validade[:10]}")
-            texto_lote_val = ' '.join(linha_extra)
-            texto_width_est = int(len(texto_lote_val) * f_lote * 0.7)
-            x_lote = max(content_margin, (label_width - texto_width_est) // 2)
-            zpl += f"^FO{x_lote},{y_pos}^A0N,{f_lote},{f_lote}^FD{texto_lote_val}^FS\n"
+                partes.append(f"Val:{validade[:10]}")
+            zpl += f"^FO{x_left},{y_pos}^A0N,{f_lote},{f_lote}^FD{'  '.join(partes)}^FS\n"
             y_pos += int(f_lote * line_spacing)
-            y_pos += int(4 * dots_per_mm)  # espaço antes do código de barras
+            y_pos += int(3 * dots_per_mm)
 
-        # 4. Código de barras (último, centralizado)
-        barcode_width_est = int(220 * font_scale)
-        x_barcode = max(0, (label_width - barcode_width_est) // 2)
+        # 4. Código de barras (último, alinhado à esquerda - evita erro de centralização)
         if codigo_barras:
             if len(codigo_barras) == 13 and codigo_barras.isdigit():
-                zpl += f"^FO{x_barcode},{y_pos}^BY2^BEN,{f_barcode},Y,N^FD{codigo_barras}^FS\n"
+                zpl += f"^FO{x_left},{y_pos}^BY2^BEN,{f_barcode},Y,N^FD{codigo_barras}^FS\n"
             else:
-                zpl += f"^FO{x_barcode},{y_pos}^BY2^BCN,{f_barcode},Y,N,N^FD{codigo_barras}^FS\n"
+                zpl += f"^FO{x_left},{y_pos}^BY2^BCN,{f_barcode},Y,N,N^FD{codigo_barras}^FS\n"
         
         zpl += "^XZ"
         
