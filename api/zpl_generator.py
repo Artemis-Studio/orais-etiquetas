@@ -96,41 +96,33 @@ class ZPLGenerator:
         # Conteúdo: mesma origem que calibração (^LH já aplicado)
         y_pos = content_margin
         
-        # Descrição: quebra em múltiplas linhas (max ~28 chars/linha, max 3 linhas)
-        # Evita truncar - nomes longos como "JG DENTE ENDO 21 AO 27 RADIO ETC ETC" quebram corretamente
+        # Layout padrão: Descrição → REF/Pedido → Lote/Val → Código de barras (último, centralizado)
+        line_spacing = 1.15  # espaçamento entre seções
+
+        # 1. Descrição
         desc_completa = f"{descricao} {descricao2}".strip() if (descricao or descricao2) else ""
         if desc_completa:
-            max_chars_linha = 24  # cabe na coluna (50mm, fonte escalada)
-            max_linhas_desc = 3   # limite para caber barcode, REF, etc
+            max_chars_linha = 24
+            max_linhas_desc = 3
             linhas_desc = self._wrap_text(desc_completa, max_chars_linha)[:max_linhas_desc]
             for linha in linhas_desc:
-                if linha.strip():  # evita linha vazia
+                if linha.strip():
                     zpl += f"^FO{content_margin},{y_pos}^A0N,{f_desc},{f_desc}^FD{linha}^FS\n"
-                    y_pos += int(f_desc * 1.2)
-        
-        # REF e Pedido na mesma linha - AMBOS na coluna esquerda (evitar que Pedido vá para direita)
-        # REF à esquerda, Pedido logo após (mantém tudo dentro da etiqueta da esquerda)
-        ref_pedido_x_offset = int(130 * scale)  # espaço entre REF e Pedido (escala mantém proporção)
+                    y_pos += int(f_desc * line_spacing)
+            y_pos += int(f_desc * 0.3)  # espaço extra após descrição
+
+        # 2. REF e Pedido (mesma linha)
+        ref_pedido_x_offset = int(130 * scale)
         if ref or pedido:
             if ref:
                 zpl += f"^FO{content_margin},{y_pos}^A0N,{f_ref},{f_ref}^FDREF:{ref}^FS\n"
             if pedido:
-                # Pedido à direita do REF, mas sempre na coluna esquerda (x < label_width)
                 x_pedido = content_margin + ref_pedido_x_offset
                 zpl += f"^FO{x_pedido},{y_pos}^A0N,{f_ref},{f_ref}^FDPedido:{pedido[:12]}^FS\n"
-            y_pos += int(f_ref * 1.2)
-        
-        # Código de barras centralizado (largura escala com font_scale)
-        barcode_width_est = int(220 * font_scale)
-        x_barcode = (label_width - barcode_width_est) // 2
-        if codigo_barras:
-            if len(codigo_barras) == 13 and codigo_barras.isdigit():
-                zpl += f"^FO{x_barcode},{y_pos}^BY2^BEN,{f_barcode},Y,N^FD{codigo_barras}^FS\n"
-            else:
-                zpl += f"^FO{x_barcode},{y_pos}^BY2^BCN,{f_barcode},Y,N,N^FD{codigo_barras}^FS\n"
-            y_pos += int(f_barcode * 1.4)
-        
-        # Lote e Validade centralizados (cálculo manual)
+            y_pos += int(f_ref * line_spacing)
+            y_pos += int(f_ref * 0.3)  # espaço extra após REF/Pedido
+
+        # 3. Lote e Validade (centralizados, acima do código de barras)
         if lote or validade:
             linha_extra = []
             if lote:
@@ -138,10 +130,20 @@ class ZPLGenerator:
             if validade:
                 linha_extra.append(f"Val:{validade[:10]}")
             texto_lote_val = ' '.join(linha_extra)
-            # ~0.7 dots por ponto de fonte por caractere (fonte Zebra 0)
             texto_width_est = int(len(texto_lote_val) * f_lote * 0.7)
             x_lote = max(content_margin, (label_width - texto_width_est) // 2)
             zpl += f"^FO{x_lote},{y_pos}^A0N,{f_lote},{f_lote}^FD{texto_lote_val}^FS\n"
+            y_pos += int(f_lote * line_spacing)
+            y_pos += int(4 * dots_per_mm)  # espaço antes do código de barras
+
+        # 4. Código de barras (último, centralizado)
+        barcode_width_est = int(220 * font_scale)
+        x_barcode = max(0, (label_width - barcode_width_est) // 2)
+        if codigo_barras:
+            if len(codigo_barras) == 13 and codigo_barras.isdigit():
+                zpl += f"^FO{x_barcode},{y_pos}^BY2^BEN,{f_barcode},Y,N^FD{codigo_barras}^FS\n"
+            else:
+                zpl += f"^FO{x_barcode},{y_pos}^BY2^BCN,{f_barcode},Y,N,N^FD{codigo_barras}^FS\n"
         
         zpl += "^XZ"
         

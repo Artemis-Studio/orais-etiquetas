@@ -13,7 +13,7 @@ printer:
 
   # Margem esquerda (mm): desloca início para evitar corte no vão.
   # Se texto ESQ cortado (ex: "20.1040-20"), AUMENTE (6-8).
-  label_margin_left: 1
+  label_margin_left: 2
 
   # Margem superior (mm): evita conteúdo colado no topo.
   label_margin_top: 2
@@ -32,7 +32,7 @@ printer:
   gap_between_columns_mm: 1
 
   # Escala de fontes na etiqueta (1.0 = padrão, 1.25 = +25%)
-  font_scale: 1.5
+  font_scale: 1.25
 
 queue:
   check_interval: 30  # Intervalo em segundos para verificar a fila
