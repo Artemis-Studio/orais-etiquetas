@@ -108,22 +108,25 @@ class ZPLGenerator:
                 zpl += f"^FO{x_pedido},{y_pos}^A0N,{f_ref},{f_ref}^FDPedido:{pedido[:12]}^FS\n"
             y_pos += int(f_ref * 1.2)
         
-        # Código de barras (altura proporcional ao DPI)
+        # Código de barras centralizado na etiqueta
+        barcode_width_est = 240  # EAN-13/Code128 ~240 dots com ^BY2
+        x_barcode = max(margin, (label_width - barcode_width_est) // 2)
         if codigo_barras:
             if len(codigo_barras) == 13 and codigo_barras.isdigit():
-                zpl += f"^FO{margin},{y_pos}^BY2^BEN,{f_barcode},Y,N^FD{codigo_barras}^FS\n"
+                zpl += f"^FO{x_barcode},{y_pos}^BY2^BEN,{f_barcode},Y,N^FD{codigo_barras}^FS\n"
             else:
-                zpl += f"^FO{margin},{y_pos}^BY2^BCN,{f_barcode},Y,N,N^FD{codigo_barras}^FS\n"
+                zpl += f"^FO{x_barcode},{y_pos}^BY2^BCN,{f_barcode},Y,N,N^FD{codigo_barras}^FS\n"
             y_pos += int(f_barcode * 1.4)
         
-        # Lote e Validade (opcional)
+        # Lote e Validade centralizados (^FB = Field Block com alinhamento centro)
         if lote or validade:
             linha_extra = []
             if lote:
                 linha_extra.append(f"Lote:{lote[:8]}")
             if validade:
                 linha_extra.append(f"Val:{validade[:10]}")
-            zpl += f"^FO{margin},{y_pos}^A0N,{f_lote},{f_lote}^FD{' '.join(linha_extra)}^FS\n"
+            texto_lote_val = ' '.join(linha_extra)
+            zpl += f"^FO0,{y_pos}^FB{label_width},1,0,C^A0N,{f_lote},{f_lote}^FD{texto_lote_val}^FS\n"
         
         zpl += "^XZ"
         
