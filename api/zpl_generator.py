@@ -135,6 +135,50 @@ class ZPLGenerator:
         
         return zpl.strip()
     
+    def generate_dual_column_test_label(self, data: Optional[Dict] = None) -> str:
+        """Gera ZPL para testar as duas colunas - mesmo conteúdo em esquerda e direita.
+        
+        Imprime a mesma etiqueta nas duas colunas do rolo (uma linha) para verificar
+        se ambas imprimem corretamente e o layout está certo.
+        
+        Args:
+            data: Dados do produto (usa dados de teste se None)
+            
+        Returns:
+            String ZPL com conteúdo nas duas colunas
+        """
+        import re
+        if data is None:
+            data = {
+                "codigo": "TESTE",
+                "descricao": "Teste Duas Colunas",
+                "descricao2": "ESQ + DIR",
+                "ref": "999",
+                "pedido": "12345",
+                "codigo_barras": "7890000005098",
+                "lote": "LOTE001",
+                "validade": "31/12/2025",
+            }
+        zpl = self.generate_product_label(data)
+        try:
+            label_width = int(50 * (get_config().get_label_dpi() / 25.4))
+        except Exception:
+            label_width = 600
+        # Extrai o corpo (linhas com ^FO) e duplica com offset para coluna direita
+        parts = zpl.split('^XZ')
+        if len(parts) < 1:
+            return zpl
+        before_xz = parts[0].rstrip()
+        lines = before_xz.split('\n')
+        body_lines = [l for l in lines if '^FO' in l]
+        if not body_lines:
+            return zpl
+        first_fo_idx = next(i for i, l in enumerate(lines) if '^FO' in l)
+        header = '\n'.join(lines[:first_fo_idx]) + '\n'
+        body = '\n'.join(body_lines)
+        body_right = re.sub(r'\^FO(\d+),', lambda m: f"^FO{int(m.group(1)) + label_width},", body)
+        return header + body + '\n' + body_right + '\n^XZ'
+    
     def generate_custom_label(self, data: Dict, template: Optional[str] = None) -> str:
         """Gera comando ZPL customizado.
         

@@ -77,6 +77,34 @@ def list_printers(ctx):
 @click.option('--printer', '-p', default=None, 
               help='Nome da impressora (deixe vazio para usar padrão)')
 @click.pass_context
+def test_both_columns(ctx, printer):
+    """Testa as duas colunas - imprime mesma etiqueta em esquerda e direita."""
+    click.echo("[TESTE] Testando DUAS COLUNAS (esquerda + direita)...\n")
+    try:
+        printer_manager = PrinterManager()
+        printer_name = printer_manager.get_printer_name(printer)
+        if not printer_name:
+            click.echo("[ERRO] Nenhuma impressora disponivel.")
+            sys.exit(1)
+        click.echo(f"[IMPRESSORA] {printer_name}")
+        click.echo("[ENVIANDO] Etiqueta de teste nas duas colunas...")
+        zpl_generator = ZPLGenerator()
+        zpl = zpl_generator.generate_dual_column_test_label()
+        success = printer_manager.print_zpl(zpl, printer_name)
+        if success:
+            click.echo("[OK] Verifique as duas etiquetas (esquerda e direita)")
+        else:
+            click.echo("[ERRO] Falha ao enviar impressao.")
+            sys.exit(1)
+    except Exception as e:
+        click.echo(f"[ERRO] {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command()
+@click.option('--printer', '-p', default=None, 
+              help='Nome da impressora (deixe vazio para usar padrão)')
+@click.pass_context
 def test_printer(ctx, printer):
     """Testa a impressão em uma impressora."""
     click.echo("[TESTE] Testando impressao...\n")
