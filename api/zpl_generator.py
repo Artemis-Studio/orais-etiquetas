@@ -142,7 +142,8 @@ class ZPLGenerator:
     
     def generate_calibration_label(self, dual_column: bool = True) -> str:
         """Gera etiqueta de calibração com marcações para validar tamanho real.
-        Baseado no Sistema de Etiquetas v07.2 - bordas grossas, fontes 18-20 como no sistema."""
+        Baseado no Sistema de Etiquetas v07.2. Apenas bordas e números - sem ticks
+        que possam gerar risco no meio. Fontes 24-28 para máxima legibilidade."""
         try:
             cfg = get_config()
             dpi = cfg.get_label_dpi()
@@ -158,47 +159,38 @@ class ZPLGenerator:
         margin_left = int(margin_left_mm * dots_per_mm)
         margin_right = int(margin_right_mm * dots_per_mm)
         total_width = margin_left + label_width * 2 + margin_right if dual_column else margin_left + label_width
-        # Espessura grossa (5 dots) - compatível v07.2, visível em 300dpi
-        t = 5
-        # Fontes maiores como v07.2 (^A0N,20,20 / 21,21) - números legíveis
-        f_num = 18
-        f_ref = 16
-        f_tit = 14
+        t = 6  # espessura bordas (6 dots = visível em 300dpi)
+        f_num = 28   # números da régua - bem grandes
+        f_tit = 22   # títulos [ESQ]/[DIR]
+        f_ref = 20   # 0mm, 50mm, etc.
         
-        zpl = f"^XA\n^CI28\n^PQ1\n^LH{margin_left},0^PW{total_width}^LL{label_height}\n"
+        zpl = f"^XA\n^CI28\n^PQ1\n^MD15\n^LH{margin_left},0^PW{total_width}^LL{label_height}\n"
         
-        # Borda externa COLUNA ESQUERDA - retângulo completo (4 lados separados, grossos)
-        zpl += f"^FO0,0^GB{label_width},{t},{t}^FS\n"           # topo
-        zpl += f"^FO0,{label_height-t}^GB{label_width},{t},{t}^FS\n"  # base
-        zpl += f"^FO0,0^GB{t},{label_height},{t}^FS\n"          # esquerda
-        zpl += f"^FO{label_width-t},0^GB{t},{label_height},{t}^FS\n"  # direita col1
+        # === COLUNA ESQUERDA: só as 4 bordas (sem ticks no meio - evita "risco") ===
+        zpl += f"^FO0,0^GB{label_width},{t},{t}^FS\n"
+        zpl += f"^FO0,{label_height-t}^GB{label_width},{t},{t}^FS\n"
+        zpl += f"^FO0,0^GB{t},{label_height},{t}^FS\n"
+        zpl += f"^FO{label_width-t},0^GB{t},{label_height},{t}^FS\n"
         
-        # Marcações a cada 10mm - apenas ticks curtos (não riscos no meio), números por baixo
-        tick_h = 4
+        # Números horizontal (10,20,30,40mm) - na base, fonte grande
         for mm in range(10, min(50, label_width_mm), 10):
             x = int(mm * dots_per_mm)
-            zpl += f"^FO{x},0^GB{t},{tick_h},{t}^FS\n"
-            zpl += f"^FO{x},{label_height-tick_h}^GB{t},{tick_h},{t}^FS\n"
-            x_num = max(0, x - 12)  # centraliza número ~18px, evita negativo
-            y_num = label_height - 28
-            zpl += f"^FO{x_num},{y_num}^A0N,{f_num},{f_num}^FD{mm}^FS\n"
+            x_num = max(0, x - 14)
+            zpl += f"^FO{x_num},{label_height - 38}^A0N,{f_num},{f_num}^FD{mm}^FS\n"
         
-        # Marcações a cada 5mm na vertical - ticks horizontais curtos
+        # Números vertical (5,10,15,20mm) - à esquerda
         for mm in range(5, 25, 5):
             y = int(mm * dots_per_mm)
-            zpl += f"^FO0,{y}^GB{tick_h},{t},{t}^FS\n"
-            zpl += f"^FO{label_width-tick_h},{y}^GB{tick_h},{t},{t}^FS\n"
-            y_num = max(0, y - 10)
-            zpl += f"^FO6,{y_num}^A0N,{f_num},{f_num}^FD{mm}^FS\n"
+            y_num = max(0, y - 14)
+            zpl += f"^FO8,{y_num}^A0N,{f_num},{f_num}^FD{mm}^FS\n"
         
-        # Identificação - fonte legível
-        zpl += f"^FO{max(0, label_width//2 - 55)},4^A0N,{f_tit},{f_tit}^FD[ESQ] {label_width_mm}x25mm^FS\n"
-        zpl += f"^FO6,{label_height//2 - 10}^A0N,{f_ref},{f_ref}^FD0mm^FS\n"
-        zpl += f"^FO{max(0, label_width-45)},{label_height//2 - 10}^A0N,{f_ref},{f_ref}^FD{label_width_mm}mm^FS\n"
-        zpl += f"^FO6,{label_height-22}^A0N,{f_ref},{f_ref}^FD10,20,30,40=mm^FS\n"
+        # Título e referências
+        zpl += f"^FO{max(0, label_width//2 - 60)},6^A0N,{f_tit},{f_tit}^FD[ESQ] {label_width_mm}x25mm^FS\n"
+        zpl += f"^FO8,{label_height//2 - 12}^A0N,{f_ref},{f_ref}^FD0mm^FS\n"
+        zpl += f"^FO{max(0, label_width-50)},{label_height//2 - 12}^A0N,{f_ref},{f_ref}^FD{label_width_mm}mm^FS\n"
+        zpl += f"^FO8,{label_height-36}^A0N,{f_ref},{f_ref}^FD10,20,30,40=mm^FS\n"
         
         if dual_column:
-            # Borda coluna direita - retângulo completo separado
             x_dir = label_width
             zpl += f"^FO{x_dir},0^GB{label_width},{t},{t}^FS\n"
             zpl += f"^FO{x_dir},{label_height-t}^GB{label_width},{t},{t}^FS\n"
@@ -206,11 +198,13 @@ class ZPLGenerator:
             zpl += f"^FO{x_dir + label_width - t},0^GB{t},{label_height},{t}^FS\n"
             for mm in range(10, min(50, label_width_mm), 10):
                 x = x_dir + int(mm * dots_per_mm)
-                zpl += f"^FO{x},0^GB{t},{tick_h},{t}^FS\n"
-                zpl += f"^FO{x},{label_height-tick_h}^GB{t},{tick_h},{t}^FS\n"
-                x_num = max(x_dir, x - 12)
-                zpl += f"^FO{x_num},{label_height - 28}^A0N,{f_num},{f_num}^FD{mm}^FS\n"
-            zpl += f"^FO{x_dir + max(0, label_width//2 - 45)},4^A0N,{f_tit},{f_tit}^FD[DIR] {label_width_mm}x25mm^FS\n"
+                x_num = max(x_dir, x - 14)
+                zpl += f"^FO{x_num},{label_height - 38}^A0N,{f_num},{f_num}^FD{mm}^FS\n"
+            for mm in range(5, 25, 5):
+                y = int(mm * dots_per_mm)
+                y_num = max(0, y - 14)
+                zpl += f"^FO{x_dir + 8},{y_num}^A0N,{f_num},{f_num}^FD{mm}^FS\n"
+            zpl += f"^FO{x_dir + max(0, label_width//2 - 50)},6^A0N,{f_tit},{f_tit}^FD[DIR] {label_width_mm}x25mm^FS\n"
         
         zpl += "^XZ"
         return zpl.strip()

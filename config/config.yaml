@@ -7,13 +7,20 @@ printer:
   default_printer: "ZDesigner_Produto"  
   timeout: 30  # Timeout em segundos para operações de impressão
   retry_attempts: 3  # Número de tentativas em caso de falha
-  # DPI da impressora: 203 ou 300 (ZDesigner GC420t pode ser ambos)
+  # === CALIBRAÇÃO (2 colunas 50x25mm) - ajuste conforme a régua ===
+  # DPI: 203 ou 300 (ZDesigner GC420t suporta ambos)
   label_dpi: 300
-  # Margem esquerda (mm) - evita borda cortada no vão entre colunas
-  label_margin_left: 3
-  # Margem direita (mm) - borda DIR não chega no final, aumenta
+
+  # Margem esquerda (mm): desloca início para não imprimir no vão.
+  # Se borda ESQ cortada (ficou no vão), AUMENTE para 5 ou 6.
+  label_margin_left: 5
+
+  # Margem direita (mm): espaço após a coluna direita.
+  # Se borda DIR não chega no final, AUMENTE para 10 ou 12.
   label_margin_right: 10
-  # Largura real por etiqueta (mm) - use 45 se régua mostrar ~5mm a menos
+
+  # Largura por etiqueta (mm): meça com régua na impressão de calibração.
+  # Se números 10,20,30,40 não batem ~5mm com a régua, use 45.
   label_width_mm: 50
 
 queue:
