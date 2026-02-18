@@ -83,9 +83,17 @@ class Config:
         """Retorna o DPI da impressora para etiquetas (203 ou 300)."""
         return self.get('printer.label_dpi', 300)
     
+    def get_label_margin_left(self) -> int:
+        """Retorna margem esquerda em mm (evita corte no vão)."""
+        return self.get('printer.label_margin_left', 3)
+    
     def get_label_margin_right(self) -> int:
-        """Retorna margem direita em mm (evita corte da 2ª coluna)."""
-        return self.get('printer.label_margin_right', 8)
+        """Retorna margem direita em mm (borda DIR chegar no final)."""
+        return self.get('printer.label_margin_right', 10)
+    
+    def get_label_width_mm(self) -> int:
+        """Retorna largura real da etiqueta em mm (45 se régua mostrar menor)."""
+        return self.get('printer.label_width_mm', 50)
     
     def get_retry_attempts(self) -> int:
         """Retorna o número de tentativas de retry."""

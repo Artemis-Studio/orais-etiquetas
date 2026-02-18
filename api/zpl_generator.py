@@ -56,21 +56,22 @@ class ZPLGenerator:
         lote = self._escape_zpl(str(data.get('lote', '')))
         validade = self._escape_zpl(str(data.get('validade', '')))
         
-        # Dimensões: rolo 2 colunas de 50x25mm (100mm largura total)
+        # Dimensões: rolo 2 colunas
         try:
-            dpi = get_config().get_label_dpi()
+            cfg = get_config()
+            dpi = cfg.get_label_dpi()
+            label_width_mm = cfg.get_label_width_mm()
+            margin_left_mm = cfg.get_label_margin_left()
+            margin_right_mm = cfg.get_label_margin_right()
         except Exception:
-            dpi = 300
+            dpi, label_width_mm = 300, 50
+            margin_left_mm, margin_right_mm = 3, 10
         dots_per_mm = dpi / 25.4
-        label_width = int(50 * dots_per_mm)   # 50mm - uma coluna
+        label_width = int(label_width_mm * dots_per_mm)
         label_height = int(25 * dots_per_mm)  # 25mm
-        # Margem extra à direita (evita corte da etiqueta direita)
-        try:
-            margin_right_mm = get_config().get_label_margin_right()
-        except Exception:
-            margin_right_mm = 8
-        margin_right = int(margin_right_mm * dots_per_mm)
-        total_width = label_width * 2 + margin_right
+        margin_left = int(margin_left_mm * dots_per_mm)   # evita corte no vão
+        margin_right = int(margin_right_mm * dots_per_mm)  # borda DIR no final
+        total_width = margin_left + label_width * 2 + margin_right
         margin = max(5, int(8 * dots_per_mm / 8))
         # Escala de fontes (base para 203 dpi, maior para 300 dpi)
         scale = dpi / 203
@@ -80,14 +81,12 @@ class ZPLGenerator:
         f_barcode = max(28, int(36 * scale))
         f_lote = max(12, int(12 * scale))
         
-        # ^PW = largura total do rolo (2 colunas)
-        # ^LL = altura de uma etiqueta
-        # Conteúdo restrito à coluna esquerda (x entre 0 e label_width)
-        # ^PQ1 = 1 cópia apenas
-        zpl = f"^XA\n^CI28\n^PQ1\n^PW{total_width}^LL{label_height}^LH0,0\n"
+        # ^LH = desloca origem à direita (evita borda no vão)
+        # ^PW = largura total
+        # ^PQ1 = 1 cópia
+        zpl = f"^XA\n^CI28\n^PQ1\n^LH{margin_left},0^PW{total_width}^LL{label_height}\n"
         
-        # Layout: descricao (com quebra de linha), REF|Pedido, código de barras
-        # Combina descricao + descricao2 e quebra por palavras (cabe na etiqueta esquerda)
+        # Conteúdo: x=0 agora é após margin_left (fora do vão)
         y_pos = margin
         
         # Descrição: quebra em múltiplas linhas (max ~28 chars/linha, max 3 linhas)
@@ -142,32 +141,25 @@ class ZPLGenerator:
         return zpl.strip()
     
     def generate_calibration_label(self, dual_column: bool = True) -> str:
-        """Gera etiqueta de calibração com marcações para validar tamanho real.
-        
-        Inclui: bordas, réguas em mm, cantos marcados, identificação ESQ/DIR.
-        Use para medir e relatar o que aparece impresso.
-        
-        Args:
-            dual_column: True = duas colunas, False = apenas esquerda
-            
-        Returns:
-            String ZPL de calibração
-        """
+        """Gera etiqueta de calibração com marcações para validar tamanho real."""
         try:
-            dpi = get_config().get_label_dpi()
+            cfg = get_config()
+            dpi = cfg.get_label_dpi()
+            label_width_mm = cfg.get_label_width_mm()
+            margin_left_mm = cfg.get_label_margin_left()
+            margin_right_mm = cfg.get_label_margin_right()
         except Exception:
-            dpi = 300
+            dpi, label_width_mm = 300, 50
+            margin_left_mm, margin_right_mm = 3, 10
         dots_per_mm = dpi / 25.4
-        label_width = int(50 * dots_per_mm)
+        label_width = int(label_width_mm * dots_per_mm)
         label_height = int(25 * dots_per_mm)
-        try:
-            margin_right = int(get_config().get_label_margin_right() * dots_per_mm)
-        except Exception:
-            margin_right = int(8 * dots_per_mm)
-        total_width = label_width * 2 + margin_right if dual_column else label_width
+        margin_left = int(margin_left_mm * dots_per_mm)
+        margin_right = int(margin_right_mm * dots_per_mm)
+        total_width = margin_left + label_width * 2 + margin_right if dual_column else margin_left + label_width
         t = 2  # espessura das linhas (dots)
         
-        zpl = f"^XA\n^CI28\n^PQ1\n^PW{total_width}^LL{label_height}^LH0,0\n"
+        zpl = f"^XA\n^CI28\n^PQ1\n^LH{margin_left},0^PW{total_width}^LL{label_height}\n"
         
         # Borda externa - esquerda (0 a label_width)
         zpl += f"^FO0,0^GB{label_width},{t},{t}^FS\n"      # topo
@@ -190,13 +182,13 @@ class ZPLGenerator:
             zpl += f"^FO2,{y-5}^A0N,10,10^FD{mm}^FS\n"  # número
         
         # Identificação e referência
-        zpl += f"^FO{label_width//2 - 45},2^A0N,14,14^FD[ESQ] 50x25mm 300dpi^FS\n"
+        zpl += f"^FO{label_width//2 - 50},2^A0N,14,14^FD[ESQ] {label_width_mm}x25mm^FS\n"
         zpl += f"^FO2,{label_height//2 - 6}^A0N,10,10^FD0mm^FS\n"
-        zpl += f"^FO{label_width-35},{label_height//2 - 6}^A0N,10,10^FD50mm^FS\n"
+        zpl += f"^FO{label_width-35},{label_height//2 - 6}^A0N,10,10^FD{label_width_mm}mm^FS\n"
         zpl += f"^FO2,{label_height-14}^A0N,8,8^FD10,20,30,40=mm^FS\n"
         
         if dual_column:
-            # Borda coluna direita
+            # Borda coluna direita (após ^LH, x=0 já é após margin_left)
             x_dir = label_width
             zpl += f"^FO{x_dir},0^GB{label_width},{t},{t}^FS\n"
             zpl += f"^FO{x_dir},{label_height-t}^GB{label_width},{t},{t}^FS\n"
@@ -208,7 +200,7 @@ class ZPLGenerator:
                 zpl += f"^FO{x},0^GB{t},8,{t}^FS\n"
                 zpl += f"^FO{x},{label_height-8}^GB{t},8,{t}^FS\n"
                 zpl += f"^FO{x-4},{label_height-18}^A0N,12,12^FD{mm}^FS\n"
-            zpl += f"^FO{x_dir + label_width//2 - 30},5^A0N,18,18^FD[DIR 50x25mm]^FS\n"
+            zpl += f"^FO{x_dir + label_width//2 - 30},5^A0N,18,18^FD[DIR {label_width_mm}x25mm]^FS\n"
         
         zpl += "^XZ"
         return zpl.strip()
@@ -239,9 +231,13 @@ class ZPLGenerator:
             }
         zpl = self.generate_product_label(data)
         try:
-            label_width = int(50 * (get_config().get_label_dpi() / 25.4))
+            cfg = get_config()
+            dpi = cfg.get_label_dpi()
+            label_width_mm = cfg.get_label_width_mm()
         except Exception:
-            label_width = 600
+            dpi, label_width_mm = 300, 50
+        dots_per_mm = dpi / 25.4
+        label_width = int(label_width_mm * dots_per_mm)
         # Extrai o corpo (linhas com ^FO) e duplica com offset para coluna direita
         parts = zpl.split('^XZ')
         if len(parts) < 1:
