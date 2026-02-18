@@ -64,7 +64,13 @@ class ZPLGenerator:
         dots_per_mm = dpi / 25.4
         label_width = int(50 * dots_per_mm)   # 50mm - uma coluna
         label_height = int(25 * dots_per_mm)  # 25mm
-        total_width = label_width * 2         # 100mm - largura total do rolo (2 colunas)
+        # Margem extra à direita (evita corte da etiqueta direita)
+        try:
+            margin_right_mm = get_config().get_label_margin_right()
+        except Exception:
+            margin_right_mm = 8
+        margin_right = int(margin_right_mm * dots_per_mm)
+        total_width = label_width * 2 + margin_right
         margin = max(5, int(8 * dots_per_mm / 8))
         # Escala de fontes (base para 203 dpi, maior para 300 dpi)
         scale = dpi / 203
