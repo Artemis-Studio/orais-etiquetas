@@ -80,19 +80,21 @@ class ZPLGenerator:
         # ^PQ1 = 1 cópia apenas
         zpl = f"^XA\n^CI28\n^PQ1\n^PW{total_width}^LL{label_height}^LH0,0\n"
         
-        # Layout: descricao, descricao2, REF|Pedido, código de barras
+        # Layout: descricao (com quebra de linha), REF|Pedido, código de barras
+        # Combina descricao + descricao2 e quebra por palavras (cabe na etiqueta esquerda)
         y_pos = margin
         
-        # Primeira linha: Descrição principal
-        if descricao:
-            desc_linha1 = descricao[:28] if len(descricao) > 28 else descricao
-            zpl += f"^FO{margin},{y_pos}^A0N,{f_desc},{f_desc}^FD{desc_linha1}^FS\n"
-            y_pos += int(f_desc * 1.2)
-        
-        # Segunda linha: Descrição secundária (ex: PACOS)
-        if descricao2:
-            zpl += f"^FO{margin},{y_pos}^A0N,{f_desc2},{f_desc2}^FD{descricao2}^FS\n"
-            y_pos += int(f_desc2 * 1.2)
+        # Descrição: quebra em múltiplas linhas (max ~28 chars/linha, max 3 linhas)
+        # Evita truncar - nomes longos como "JG DENTE ENDO 21 AO 27 RADIO ETC ETC" quebram corretamente
+        desc_completa = f"{descricao} {descricao2}".strip() if (descricao or descricao2) else ""
+        if desc_completa:
+            max_chars_linha = 28  # cabe na coluna esquerda (50mm, fonte ~22)
+            max_linhas_desc = 3   # limite para caber barcode, REF, etc
+            linhas_desc = self._wrap_text(desc_completa, max_chars_linha)[:max_linhas_desc]
+            for linha in linhas_desc:
+                if linha.strip():  # evita linha vazia
+                    zpl += f"^FO{margin},{y_pos}^A0N,{f_desc},{f_desc}^FD{linha}^FS\n"
+                    y_pos += int(f_desc * 1.2)
         
         # REF e Pedido na mesma linha - AMBOS na coluna esquerda (evitar que Pedido vá para direita)
         # REF à esquerda, Pedido logo após (mantém tudo dentro da etiqueta da esquerda)
@@ -148,15 +150,17 @@ class ZPLGenerator:
         return self.generate_product_label(data)
     
     def _wrap_text(self, text: str, max_length: int) -> list:
-        """Quebra texto em linhas respeitando o tamanho máximo.
+        """Quebra texto em linhas respeitando palavras e tamanho máximo.
         
         Args:
-            text: Texto a quebrar
-            max_length: Tamanho máximo por linha
+            text: Texto a quebrar (ex: "JG DENTE ENDO 21 AO 27 RADIO ETC ETC")
+            max_length: Tamanho máximo por linha em caracteres
             
         Returns:
             Lista de linhas
         """
+        if not text or not text.strip():
+            return []
         words = text.split()
         lines = []
         current_line = []
@@ -164,6 +168,14 @@ class ZPLGenerator:
         
         for word in words:
             word_length = len(word)
+            # Palavra maior que max_length: quebra no meio
+            if word_length > max_length:
+                if current_line:
+                    lines.append(' '.join(current_line))
+                    current_line, current_length = [], 0
+                for i in range(0, word_length, max_length):
+                    lines.append(word[i:i + max_length])
+                continue
             if current_length + word_length + 1 <= max_length:
                 current_line.append(word)
                 current_length += word_length + 1
@@ -176,7 +188,7 @@ class ZPLGenerator:
         if current_line:
             lines.append(' '.join(current_line))
         
-        return lines if lines else [text[:max_length]]
+        return lines
     
     def validate_zpl(self, zpl: str) -> bool:
         """Valida se o comando ZPL está bem formado.
