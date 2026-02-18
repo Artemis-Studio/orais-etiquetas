@@ -106,6 +106,10 @@ class Config:
     def get_gap_between_columns_mm(self) -> float:
         """Retorna espaço entre colunas em mm (0 = adjacentes)."""
         return float(self.get('printer.gap_between_columns_mm', 0))
+
+    def get_font_scale(self) -> float:
+        """Retorna escala de fontes (1.0 = padrão)."""
+        return float(self.get('printer.font_scale', 1.0))
     
     def get_retry_attempts(self) -> int:
         """Retorna o número de tentativas de retry."""

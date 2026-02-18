@@ -31,6 +31,9 @@ printer:
   # Se houver folga demais entre elas, use 0 ou negativo (experimente).
   gap_between_columns_mm: 1
 
+  # Escala de fontes na etiqueta (1.0 = padrão, 1.25 = +25%)
+  font_scale: 1.5
+
 queue:
   check_interval: 30  # Intervalo em segundos para verificar a fila
   max_retries: 3  # Máximo de tentativas antes de marcar como falha

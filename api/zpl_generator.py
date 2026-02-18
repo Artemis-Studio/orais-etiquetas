@@ -66,9 +66,11 @@ class ZPLGenerator:
             margin_top_mm = cfg.get_label_margin_top()
             margin_right_mm = cfg.get_label_margin_right()
             gap_mm = cfg.get_gap_between_columns_mm()
+            font_scale = cfg.get_font_scale()
         except Exception:
             dpi, label_width_mm, label_height_mm = 203, 50, 25
             margin_left_mm, margin_top_mm, margin_right_mm, gap_mm = 4, 2, 8, 1
+            font_scale = 1.25
         dots_per_mm = dpi / 25.4
         label_width = int(label_width_mm * dots_per_mm)
         label_height = int(label_height_mm * dots_per_mm)
@@ -79,8 +81,8 @@ class ZPLGenerator:
         total_width = margin_left + label_width + gap_dots + label_width + margin_right
         # Margem interna igual à calibração: ~1,5mm (8-12 dots a 203dpi)
         content_margin = max(8, int(1.5 * dots_per_mm))
-        # Escala de fontes (base para 203 dpi, maior para 300 dpi)
-        scale = dpi / 203
+        # Escala de fontes (base 203 dpi + font_scale do config)
+        scale = dpi / 203 * font_scale
         f_desc = max(18, int(18 * scale))
         f_desc2 = max(15, int(15 * scale))
         f_ref = max(14, int(14 * scale))
@@ -98,7 +100,7 @@ class ZPLGenerator:
         # Evita truncar - nomes longos como "JG DENTE ENDO 21 AO 27 RADIO ETC ETC" quebram corretamente
         desc_completa = f"{descricao} {descricao2}".strip() if (descricao or descricao2) else ""
         if desc_completa:
-            max_chars_linha = 28  # cabe na coluna esquerda (50mm, fonte ~22)
+            max_chars_linha = 24  # cabe na coluna (50mm, fonte escalada)
             max_linhas_desc = 3   # limite para caber barcode, REF, etc
             linhas_desc = self._wrap_text(desc_completa, max_chars_linha)[:max_linhas_desc]
             for linha in linhas_desc:
@@ -108,7 +110,7 @@ class ZPLGenerator:
         
         # REF e Pedido na mesma linha - AMBOS na coluna esquerda (evitar que Pedido vá para direita)
         # REF à esquerda, Pedido logo após (mantém tudo dentro da etiqueta da esquerda)
-        ref_pedido_x_offset = int(130 * scale)  # espaço entre REF e Pedido
+        ref_pedido_x_offset = int(130 * scale)  # espaço entre REF e Pedido (escala mantém proporção)
         if ref or pedido:
             if ref:
                 zpl += f"^FO{content_margin},{y_pos}^A0N,{f_ref},{f_ref}^FDREF:{ref}^FS\n"
@@ -118,8 +120,8 @@ class ZPLGenerator:
                 zpl += f"^FO{x_pedido},{y_pos}^A0N,{f_ref},{f_ref}^FDPedido:{pedido[:12]}^FS\n"
             y_pos += int(f_ref * 1.2)
         
-        # Código de barras centralizado (cálculo manual - mais confiável que ^FB)
-        barcode_width_est = 220  # EAN-13 ~220 dots com ^BY2
+        # Código de barras centralizado (largura escala com font_scale)
+        barcode_width_est = int(220 * font_scale)
         x_barcode = (label_width - barcode_width_est) // 2
         if codigo_barras:
             if len(codigo_barras) == 13 and codigo_barras.isdigit():
