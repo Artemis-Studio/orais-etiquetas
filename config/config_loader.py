@@ -94,6 +94,14 @@ class Config:
     def get_label_width_mm(self) -> int:
         """Retorna largura real da etiqueta em mm (45 se régua mostrar menor)."""
         return self.get('printer.label_width_mm', 50)
+
+    def get_label_height_mm(self) -> int:
+        """Retorna altura da etiqueta em mm (padrão 25)."""
+        return self.get('printer.label_height_mm', 25)
+
+    def get_gap_between_columns_mm(self) -> float:
+        """Retorna espaço entre colunas em mm (0 = adjacentes)."""
+        return float(self.get('printer.gap_between_columns_mm', 0))
     
     def get_retry_attempts(self) -> int:
         """Retorna o número de tentativas de retry."""

@@ -56,22 +56,25 @@ class ZPLGenerator:
         lote = self._escape_zpl(str(data.get('lote', '')))
         validade = self._escape_zpl(str(data.get('validade', '')))
         
-        # Dimensões: rolo 2 colunas
+        # Dimensões: rolo 2 colunas 50x25mm
         try:
             cfg = get_config()
             dpi = cfg.get_label_dpi()
             label_width_mm = cfg.get_label_width_mm()
+            label_height_mm = cfg.get_label_height_mm()
             margin_left_mm = cfg.get_label_margin_left()
             margin_right_mm = cfg.get_label_margin_right()
+            gap_mm = cfg.get_gap_between_columns_mm()
         except Exception:
-            dpi, label_width_mm = 300, 50
-            margin_left_mm, margin_right_mm = 3, 10
+            dpi, label_width_mm, label_height_mm = 203, 50, 25
+            margin_left_mm, margin_right_mm, gap_mm = 4, 8, 1
         dots_per_mm = dpi / 25.4
         label_width = int(label_width_mm * dots_per_mm)
-        label_height = int(25 * dots_per_mm)  # 25mm
-        margin_left = int(margin_left_mm * dots_per_mm)   # evita corte no vão
-        margin_right = int(margin_right_mm * dots_per_mm)  # borda DIR no final
-        total_width = margin_left + label_width * 2 + margin_right
+        label_height = int(label_height_mm * dots_per_mm)
+        margin_left = int(margin_left_mm * dots_per_mm)
+        margin_right = int(margin_right_mm * dots_per_mm)
+        gap_dots = int(gap_mm * dots_per_mm)
+        total_width = margin_left + label_width + gap_dots + label_width + margin_right
         margin = max(5, int(8 * dots_per_mm / 8))
         # Escala de fontes (base para 203 dpi, maior para 300 dpi)
         scale = dpi / 203
@@ -148,17 +151,23 @@ class ZPLGenerator:
             cfg = get_config()
             dpi = cfg.get_label_dpi()
             label_width_mm = cfg.get_label_width_mm()
+            label_height_mm = cfg.get_label_height_mm()
             margin_left_mm = cfg.get_label_margin_left()
             margin_right_mm = cfg.get_label_margin_right()
+            gap_mm = cfg.get_gap_between_columns_mm()
         except Exception:
-            dpi, label_width_mm = 300, 50
-            margin_left_mm, margin_right_mm = 3, 10
+            dpi, label_width_mm, label_height_mm = 203, 50, 25
+            margin_left_mm, margin_right_mm, gap_mm = 4, 8, 1
         dots_per_mm = dpi / 25.4
         label_width = int(label_width_mm * dots_per_mm)
-        label_height = int(25 * dots_per_mm)
+        label_height = int(label_height_mm * dots_per_mm)
         margin_left = int(margin_left_mm * dots_per_mm)
         margin_right = int(margin_right_mm * dots_per_mm)
-        total_width = margin_left + label_width * 2 + margin_right if dual_column else margin_left + label_width
+        gap_dots = int(gap_mm * dots_per_mm)
+        if dual_column:
+            total_width = margin_left + label_width + gap_dots + label_width + margin_right
+        else:
+            total_width = margin_left + label_width + margin_right
         t = 6  # espessura bordas (6 dots = visível em 300dpi)
         f_num = 32   # números da régua - máximo legibilidade (antes 28)
         f_tit = 24   # títulos [ESQ]/[DIR]
@@ -177,30 +186,30 @@ class ZPLGenerator:
             zpl += f"^FO{x_num},{label_height - 38}^A0N,{f_num},{f_num}^FD{mm}^FS\n"
         
         # Números vertical (5,10,15,20mm) - à esquerda
-        for mm in range(5, 25, 5):
+        for mm in range(5, min(25, label_height_mm), 5):
             y = int(mm * dots_per_mm)
             y_num = max(0, y - 14)
             zpl += f"^FO8,{y_num}^A0N,{f_num},{f_num}^FD{mm}^FS\n"
         
         # Título e referências
-        zpl += f"^FO{max(0, label_width//2 - 60)},6^A0N,{f_tit},{f_tit}^FD[ESQ] {label_width_mm}x25mm^FS\n"
+        zpl += f"^FO{max(0, label_width//2 - 60)},6^A0N,{f_tit},{f_tit}^FD[ESQ] {label_width_mm}x{label_height_mm}mm^FS\n"
         zpl += f"^FO8,{label_height//2 - 12}^A0N,{f_ref},{f_ref}^FD0mm^FS\n"
         zpl += f"^FO{max(0, label_width-50)},{label_height//2 - 12}^A0N,{f_ref},{f_ref}^FD{label_width_mm}mm^FS\n"
         zpl += f"^FO8,{label_height-36}^A0N,{f_ref},{f_ref}^FD10,20,30,40=mm^FS\n"
         
         if dual_column:
-            x_dir = label_width
+            x_dir = label_width + gap_dots
             # COLUNA DIREITA: retângulo completo (4 bordas em um ^GB)
             zpl += f"^FO{x_dir},0^GB{label_width},{label_height},{t}^FS\n"
             for mm in range(10, min(50, label_width_mm), 10):
                 x = x_dir + int(mm * dots_per_mm)
                 x_num = max(x_dir, x - 14)
                 zpl += f"^FO{x_num},{label_height - 38}^A0N,{f_num},{f_num}^FD{mm}^FS\n"
-            for mm in range(5, 25, 5):
+            for mm in range(5, min(25, label_height_mm), 5):
                 y = int(mm * dots_per_mm)
                 y_num = max(0, y - 14)
                 zpl += f"^FO{x_dir + 8},{y_num}^A0N,{f_num},{f_num}^FD{mm}^FS\n"
-            zpl += f"^FO{x_dir + max(0, label_width//2 - 50)},6^A0N,{f_tit},{f_tit}^FD[DIR] {label_width_mm}x25mm^FS\n"
+            zpl += f"^FO{x_dir + max(0, label_width//2 - 50)},6^A0N,{f_tit},{f_tit}^FD[DIR] {label_width_mm}x{label_height_mm}mm^FS\n"
         
         zpl += "^XZ"
         return zpl.strip()
@@ -234,10 +243,13 @@ class ZPLGenerator:
             cfg = get_config()
             dpi = cfg.get_label_dpi()
             label_width_mm = cfg.get_label_width_mm()
+            gap_mm = cfg.get_gap_between_columns_mm()
         except Exception:
-            dpi, label_width_mm = 300, 50
+            dpi, label_width_mm, gap_mm = 203, 50, 1
         dots_per_mm = dpi / 25.4
         label_width = int(label_width_mm * dots_per_mm)
+        gap_dots = int(gap_mm * dots_per_mm)
+        offset_right = label_width + gap_dots
         # Extrai o corpo (linhas com ^FO) e duplica com offset para coluna direita
         parts = zpl.split('^XZ')
         if len(parts) < 1:
@@ -250,7 +262,7 @@ class ZPLGenerator:
         first_fo_idx = next(i for i, l in enumerate(lines) if '^FO' in l)
         header = '\n'.join(lines[:first_fo_idx]) + '\n'
         body = '\n'.join(body_lines)
-        body_right = re.sub(r'\^FO(\d+),', lambda m: f"^FO{int(m.group(1)) + label_width},", body)
+        body_right = re.sub(r'\^FO(\d+),', lambda m: f"^FO{int(m.group(1)) + offset_right},", body)
         return header + body + '\n' + body_right + '\n^XZ'
     
     def generate_custom_label(self, data: Dict, template: Optional[str] = None) -> str:

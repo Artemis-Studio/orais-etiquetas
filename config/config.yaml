@@ -8,20 +8,26 @@ printer:
   timeout: 30  # Timeout em segundos para operações de impressão
   retry_attempts: 3  # Número de tentativas em caso de falha
   # === CALIBRAÇÃO (2 colunas 50x25mm) - ajuste conforme a régua ===
-  # DPI: 203 ou 300 (ZDesigner GC420t suporta ambos)
-  label_dpi: 300
+  # DPI: use 203 para ZDesigner/GC420t (padrão) ou 300 se sua impressora for 300dpi
+  label_dpi: 203
 
   # Margem esquerda (mm): desloca início para não imprimir no vão.
-  # Se borda ESQ cortada (ficou no vão), AUMENTE para 5 ou 6.
-  label_margin_left: 5
+  # Se borda ESQ cortada (ficou no vão), AUMENTE. Se sobra espaço, DIMINUA.
+  label_margin_left: 4
 
   # Margem direita (mm): espaço após a coluna direita.
-  # Se borda DIR não chega no final, AUMENTE para 10 ou 12.
-  label_margin_right: 10
+  label_margin_right: 8
 
-  # Largura por etiqueta (mm): meça com régua na impressão de calibração.
-  # Se números 10,20,30,40 não batem ~5mm com a régua, use 45.
+  # Largura por etiqueta (mm): meça na régua da calibração.
+  # Se 10,20,30,40 não batem com a régua física, ajuste (ex: 48 ou 52).
   label_width_mm: 50
+
+  # Altura da etiqueta (mm). Padrão 25 para 50x25.
+  label_height_mm: 25
+
+  # Espaço entre as duas colunas (mm). Se ESQ e DIR se sobrepõem, use 1–2.
+  # Se houver folga demais entre elas, use 0 ou negativo (experimente).
+  gap_between_columns_mm: 1
 
 queue:
   check_interval: 30  # Intervalo em segundos para verificar a fila
