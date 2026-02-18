@@ -133,7 +133,10 @@ class QueueProcessor:
         
         # Gera comando ZPL
         if label_type == 'produto':
-            zpl = self.zpl_generator.generate_product_label(data)
+            if payload.get('duas_colunas'):
+                zpl = self.zpl_generator.generate_dual_column_test_label(data)
+            else:
+                zpl = self.zpl_generator.generate_product_label(data)
         else:
             # Usa template customizado se fornecido
             template = payload.get('zpl_template')

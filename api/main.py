@@ -113,7 +113,8 @@ async def print_label(
         payload = {
             "label_type": request.label_type,
             "data": request.data,
-            "zpl_template": request.zpl_template
+            "zpl_template": request.zpl_template,
+            "duas_colunas": request.duas_colunas
         }
         
         # Tenta imprimir imediatamente se impressora disponível
@@ -121,7 +122,10 @@ async def print_label(
             try:
                 # Gera ZPL
                 if request.label_type == "produto":
-                    zpl = zpl_generator.generate_product_label(request.data)
+                    if request.duas_colunas:
+                        zpl = zpl_generator.generate_dual_column_test_label(request.data)
+                    else:
+                        zpl = zpl_generator.generate_product_label(request.data)
                 else:
                     zpl = zpl_generator.generate_custom_label(
                         request.data, 

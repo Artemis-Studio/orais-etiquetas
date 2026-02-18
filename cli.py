@@ -203,8 +203,10 @@ def test_printer(ctx, printer):
               help='Número do lote')
 @click.option('--validade', default=None,
               help='Data de validade')
+@click.option('--duas-colunas', is_flag=True,
+              help='Imprimir nas 2 colunas (mesma etiqueta ESQ+DIR)')
 @click.pass_context
-def print_label(ctx, printer, codigo, descricao, descricao2, ref, pedido, quantidade, preco, codigo_barras, lote, validade):
+def print_label(ctx, printer, codigo, descricao, descricao2, ref, pedido, quantidade, preco, codigo_barras, lote, validade, duas_colunas):
     """Imprime uma etiqueta diretamente (sem usar API)."""
     click.echo("[IMPRESSORA] Preparando impressao...\n")
     
@@ -241,7 +243,10 @@ def print_label(ctx, printer, codigo, descricao, descricao2, ref, pedido, quanti
         
         # Gera ZPL
         zpl_generator = ZPLGenerator()
-        zpl = zpl_generator.generate_product_label(data)
+        if duas_colunas:
+            zpl = zpl_generator.generate_dual_column_test_label(data)
+        else:
+            zpl = zpl_generator.generate_product_label(data)
         
         click.echo(f"[DADOS] Dados da etiqueta:")
         click.echo(f"   Código: {codigo}")
@@ -263,13 +268,15 @@ def print_label(ctx, printer, codigo, descricao, descricao2, ref, pedido, quanti
         if validade:
             click.echo(f"   Validade: {validade}")
         click.echo(f"\n[IMPRESSORA] Impressora: {printer_name}")
+        if duas_colunas:
+            click.echo("[MODO] Duas colunas (ESQ + DIR)")
         click.echo("[ENVIANDO] Enviando para impressao...")
         
         # Imprime
         success = printer_manager.print_zpl(zpl, printer_name)
         
         if success:
-            click.echo("[OK] Etiqueta impressa com sucesso!")
+            click.echo("[OK] Etiqueta(s) impressa(s) com sucesso!")
         else:
             click.echo("[ERRO] Falha ao imprimir.")
             sys.exit(1)
@@ -427,8 +434,10 @@ def process_queue(ctx):
               help='Data de validade')
 @click.option('--printer', '-p', default=None,
               help='Nome da impressora')
+@click.option('--duas-colunas', is_flag=True,
+              help='Imprimir nas 2 colunas (mesma etiqueta ESQ+DIR)')
 @click.pass_context
-def print_via_api(ctx, codigo, descricao, descricao2, ref, pedido, quantidade, preco, codigo_barras, lote, validade, printer):
+def print_via_api(ctx, codigo, descricao, descricao2, ref, pedido, quantidade, preco, codigo_barras, lote, validade, printer, duas_colunas):
     """Imprime uma etiqueta via API."""
     click.echo("[ENVIANDO] Enviando requisicao de impressao via API...\n")
     
@@ -462,6 +471,8 @@ def print_via_api(ctx, codigo, descricao, descricao2, ref, pedido, quantidade, p
             data["data"]["validade"] = validade
         if printer:
             data["printer_name"] = printer
+        if duas_colunas:
+            data["duas_colunas"] = True
         
         click.echo(f"[DADOS] Dados:")
         click.echo(f"   Código: {codigo}")
